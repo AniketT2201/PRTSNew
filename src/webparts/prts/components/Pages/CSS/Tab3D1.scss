@@ -1,0 +1,53 @@
+/* Page background */
+body {
+  background: #f3f1ec !important;
+}
+
+/* Card sections with border + shadows */
+.section-card {
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin-bottom: 25px;
+  box-shadow: 0px 1px 4px rgba(0,0,0,0.15);
+  border: 1px solid #dcdcdc;
+}
+
+/* Maroon header like your image */
+.section-headerD1 {
+  background:linear-gradient(to right, #600000, #a50000);        /* SAME COLOR AS YOUR IMAGE */
+  color: #fff;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 16px;
+  border-radius: 6px 6px 0 0;
+  margin: -18px -22px 18px -22px;
+}
+
+/* Labels */
+.form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Inputs matching your design */
+.section-card .form-control {
+  background: #ffffff !important;
+  border-radius: 4px !important;
+  border: 1px solid #c1c1c1 !important;
+  height: 34px;
+}
+
+/* Textarea */
+.section-card textarea.form-control {
+  height: auto;
+}
+
+/* Fix spacing */
+.row.g-3 > div {
+  margin-bottom: 12px;
+}
+.modal-footer{
+    margin-bottom: 53px !important;
+}

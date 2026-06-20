@@ -1,0 +1,94 @@
+@media print {
+  /* Global page styles */
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    background: white;
+    color: black;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide unwanted sections */
+  .modal,
+  .modal-backdrop,
+  .loading-overlay,
+  .button-bar,
+  .pagination,
+  .d-print-none,
+  .header,
+  .left-banner,
+  .logo-text,
+  .displayWF,
+  .displayWFdelegated,
+  nav,
+  aside,
+  footer,
+  .btn,
+  [class*="sidebar"],
+  [class*="panel"],
+  [id*="Sidebar"],
+  [id*="header"],
+  [id*="panel"] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Remove SharePoint-style link printing */
+  a[href]:after {
+    content: none !important;
+  }
+
+  /* Tables formatting */
+  .table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .table th,
+  .table td {
+    border: 1px solid black !important;
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+    line-height: 1.3;
+    vertical-align: top;
+  }
+
+  /* Always show all rows (override pagination) */
+  #summaryDataTable tbody tr {
+    display: table-row !important;
+    visibility: visible !important;
+  }
+
+  /* Prevent table rows from splitting across pages */
+  table, tr, td, th {
+    page-break-inside: avoid !important;
+  }
+
+  /* Inputs appear cleanly */
+  input,
+  select,
+  textarea {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    font-size: 11px;
+    color: black;
+    width: 100%;
+  }
+
+  /* Optional: Title centered */
+  .header h2 {
+    text-align: center;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+
+  /* Optional: prevent top link (SharePoint bar) from printing */
+  @page {
+    margin: 1cm;
+  }
+}

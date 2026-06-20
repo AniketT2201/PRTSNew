@@ -1,0 +1,18 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "18.17.1",
+    "sdksVersions": {},
+    "version": "1.21.1",
+    "libraryName": "prts",
+    "libraryId": "104a1df1-3eca-4faa-87e6-282311f0c3bf",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "PRTS",
+    "solutionShortDescription": "PRTS description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

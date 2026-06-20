@@ -1,0 +1,212 @@
+.header {
+    background:  linear-gradient(to right, #600000, #a50000);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    width: 100%;
+    height: 65px;
+}
+
+.logo-text h2 {
+    color: #fff;
+    font-size: 18px;
+    margin: 0;
+}
+
+.btn-Row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btnss:hover {
+    background-color: red;
+    color: #fff;
+    border: 1px solid red;
+}
+
+.btnss {
+    background-color: red;
+    color: #fff;
+    border: 1px solid red;
+    margin: 0px 5px;
+}
+
+.btnssone {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+
+     margin: 0px 5px;
+}
+.btnssone:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnsstwo {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnsstwo:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+.btnssthree {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssthree:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnssfour {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssfour:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+.btnssfive {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssfive:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+.btnsssix {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnsssix:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnssseven {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssseven:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+.btnsseight {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnsseight:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnssnine {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssnine:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnssten {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssten:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnsseleven {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnsseleven:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnsstwelve {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnsstwelve:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+
+.btnssthirteen {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssthirteen:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+.btnssfourteen {
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+     margin: 0px 5px;
+}
+.btnssfourteen:hover{
+    background-color: rgb(3, 3, 151);
+    color: #fff;
+    border: 1px solid rgb(3, 3, 151);
+}
+.justifyActiveContent{
+    flex-direction: row !important;
+    gap: 10px !important;
+}
+.justifyActiveContent .active{
+   background-color: #fff;
+    border-bottom: 1px solid #fff;
+    padding: 0 18px 0 18px;
+    font-size: 14px;
+    font-weight: 500;
+}
+.justifycontentsavebutton{
+    justify-content: right !important;
+}

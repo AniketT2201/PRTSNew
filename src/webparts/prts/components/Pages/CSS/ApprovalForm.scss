@@ -1,0 +1,60 @@
+#summaryDataTable {
+    font-size: 14px;
+
+    th {
+        background-color: #f8f9fa;
+        text-align: center;
+    }
+
+    td {
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+}
+
+#summaryDataTable thead th {
+    text-align: center;
+    background-color: #ce0b0e !important;
+    color: white;
+    vertical-align: middle;
+    position: sticky;
+    top: 0px;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-btn {
+    background-color: #fbc168;
+    /* orange */
+    border: none;
+    border-radius: 10px;
+    padding: 6px 16px;
+    font-size: 14px;
+    color: #444;
+    cursor: pointer;
+    min-width: 80px;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-current {
+    background-color: yellow;
+    font-weight: bold;
+    color: black;
+    border-radius: 8px;
+    padding: 6px 16px;
+    min-width: 40px;
+    text-align: center;
+}
