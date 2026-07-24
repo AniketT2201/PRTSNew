@@ -23,6 +23,7 @@ import PRTSResource from './Pages/Master Pages/PRTSResource';
 import Commodity from './Pages/Master Pages/Commodity';
 import IssueCategory from './Pages/Master Pages/IssueCategory';
 import MFGShopSelection from './Pages/Master Pages/MFGShopSelection';
+import Approval from './Pages/Approval';
 
 const Drr: React.FC<IPrtsProps> = (props) => {
   const { hasTeamsContext, EmployeeId, Maintenance } = props;
@@ -70,7 +71,7 @@ const Drr: React.FC<IPrtsProps> = (props) => {
                 />
                 <Route
                   path="/InitiatorLandingedit/:RequestId"
-                  render={() => <ProblemResolutionTrackingSystem {...props} />}
+                  render={() => <Approval {...props} />}
                 />
                 <Route
                   exact

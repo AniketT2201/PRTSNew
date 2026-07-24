@@ -208,11 +208,11 @@ export const PRTSResource: React.FC<IPrtsProps> = (props: IPrtsProps) => {
               );
 
               // 🔹 Ignore same record when editing
-              const duplicateVendor = vendorData.filter(
-                  item => Number(item.ID) !== Number(selectedId)
-              );
+              // const duplicateVendor = vendorData.filter(
+              //     item => Number(item.ID) !== Number(selectedId)
+              // );
 
-              if (duplicateVendor.length > 0) {
+              if (vendorData.length > 0) {
                   alert("PRTS Resource Name already exists!");
                   setLoading(false);
                   return;

@@ -54,6 +54,7 @@ export default class MdrWebPart extends BaseClientSideWebPart<IMdrWebPartProps> 
       let isAppAdmin: boolean = false;
       let isMaintenance: boolean = false;
       let isSysAdmin: boolean = false;
+      let isReader: boolean = false;
 
       if (AAfiltereddata[0]?.Title === 'AppAdmin') {
         isAppAdmin = true;
@@ -64,12 +65,15 @@ export default class MdrWebPart extends BaseClientSideWebPart<IMdrWebPartProps> 
       if (Maintfiltereddata[0]?.Status === 'Active') {
         isMaintenance = true;
       }
+      if (AAfiltereddata[0]?.Role === 'Reader') {
+        isReader = true;
+      }
 
-      return { isAppAdmin, isMaintenance, isSysAdmin };
+      return { isAppAdmin, isMaintenance, isSysAdmin, isReader };
     };
 
     // ✅ Get ACL values
-    const { isAppAdmin, isMaintenance, isSysAdmin } = await IASACL();
+    const { isAppAdmin, isMaintenance, isSysAdmin, isReader } = await IASACL();
 
 
     const itemdata = await IEmployeeProfileops().getEmployeeProfile(this.context.pageContext.user.email, {
@@ -97,7 +101,8 @@ export default class MdrWebPart extends BaseClientSideWebPart<IMdrWebPartProps> 
         context: this.context,
         Appadmin: isAppAdmin,
         SysAdmin: isSysAdmin,
-        Maintenance: isMaintenance
+        Maintenance: isMaintenance,
+        Reader: isReader
       }
     );
 

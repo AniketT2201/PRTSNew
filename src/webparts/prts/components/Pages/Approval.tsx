@@ -67,7 +67,7 @@ interface TechIssueData {
 
 const formatDateTime = (date: Date) => date.toISOString();
 
-const ProblemResolutionTrackingSystem = (props: IPrtsProps) => {
+const Approval = (props: IPrtsProps) => {
   //  const params = useParams()
   const { RequestId } = useParams<{ RequestId: string }>();
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -2855,14 +2855,14 @@ const buildWorkflow = () => {
           />
 
           <RemarksModal isOpen={isRemarksOpen} onClose={closeRemarksModal} onUpdate={handleRemarksUpdate} remarksTitle={remarksTitle} />
-<AssignToAnotherUserModal
-    isOpen={isAssignUserOpen}
-    onClose={closeAssignUserModal}
-    onSubmit={handleAssignSubmit}
-    // agencies={agencies}
-    context={props.currentSPContext} 
-    parentProps={props} 
-/>
+          <AssignToAnotherUserModal
+              isOpen={isAssignUserOpen}
+              onClose={closeAssignUserModal}
+              onSubmit={handleAssignSubmit}
+              // agencies={agencies}
+              context={props.currentSPContext} 
+              parentProps={props} 
+          />
           {/* Description section */}
           <div >
             <div id='showApprovalFlow'>
@@ -2931,4 +2931,4 @@ const buildWorkflow = () => {
   );
 };
 
-export default ProblemResolutionTrackingSystem;
+export default Approval;

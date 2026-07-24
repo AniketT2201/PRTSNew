@@ -4,7 +4,7 @@ interface ButtonBarProps {
   buttons: any;
 
   onClose: () => void;
-  // onCreateDraft: () => void;
+  //onCreateDraft: (formState: any) => void;
   onSubmitRequest: (reqId: any) => void | Promise<void>;
   onWithdrawn: (code: number, msg: string) => void;
   onPrint: () => void;
@@ -29,7 +29,7 @@ onClickRework: () => void;
 const ButtonBar: React.FC<ButtonBarProps> = ({
   buttons,
   onClose,
-  // onCreateDraft,
+  //onCreateDraft,
   onSubmitRequest,
   onWithdrawn,
   onPrint,
@@ -173,9 +173,12 @@ const ButtonBar: React.FC<ButtonBarProps> = ({
           </a>
         )}
       </div>
-      <div className="request">
+      {/* <div className="request">
         <span>Status: {status}</span>
          <span className="badge badge-light" style={{color:'black'}}>{chStatus}</span>
+      </div> */}
+      <div className="requestStatus">
+        <span className='fontcolorstatus'>Status : </span><span className="displayStatus font">{status} {chStatus}</span>
       </div>
 
       {/* <div className="col-sm-1">

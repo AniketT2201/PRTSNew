@@ -16,4 +16,5 @@ export interface IPrtsProps {
   Maintenance?:any;
   SysAdmin?:any;  
   subcontext?:WebPartContext;
+  Reader?:any;
 }

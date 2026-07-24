@@ -5,8 +5,8 @@ import { useParams } from "react-router-dom";
 import { formatDate } from "./MaterialMaster";
 
 interface SummaryRow {
-  c1: string; // Initiator/Approver
-  c2: string; // Forwarded To
+  c1: string; // Initiator
+  c2: string; // Approver
   c3: string; // Action Date
   c4: string; // Action
   c5: string; // Action Remarks
@@ -77,8 +77,8 @@ const Tab10Summary: React.FC<Tab10SummaryProps> = ({ summaryData }) => {
 
           <thead>
             <tr>
-              <th>Initiator/Approver</th>
-              <th>Forwarded To</th>
+              <th>Initiator</th>
+              <th>Approver</th>
               <th>Action Date</th>
               <th>Action</th>
               <th>Action Remarks</th>

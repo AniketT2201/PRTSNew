@@ -294,11 +294,11 @@ export const Commodity: React.FC<IPrtsProps> = (props: IPrtsProps) => {
               );
 
               // 🔹 Ignore same record when editing
-              const duplicateVendor = vendorData.filter(
-                  item => Number(item.ID) !== Number(selectedId)
-              );
+              // const duplicateVendor = vendorData.filter(
+              //     item => Number(item.ID) !== Number(selectedId)
+              // );
 
-              if (duplicateVendor.length > 0) {
+              if (vendorData.length > 0) {
                   alert("Commodity Name already exists!");
                   setLoading(false);
                   return;

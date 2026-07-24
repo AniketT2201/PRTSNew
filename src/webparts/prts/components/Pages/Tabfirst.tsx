@@ -48,6 +48,7 @@ interface BaseInfoData {
   mAgency?: string;
   mPartQualityIssue?: any; // PeoplePicker result stored as { Id, LoginName, Name }
   mPartSupplierSource?: string;
+  mStage?: any;
 
   // internal (optional)
   diamondUsers?: DiamondUser[];
@@ -55,13 +56,15 @@ interface BaseInfoData {
 
 interface BaseInfoProps {
   data: BaseInfoData;
-  onSave: (data: BaseInfoData) => void;
+  onSave: (data: BaseInfoData, RequestId?: string | number) => void;
+  onDraft: (data: BaseInfoData) => void;
   onFormChange: (rootCause: string, is7D: string) => void;  // <--- ADD THIS
+  onChange?: (data: BaseInfoData) => void;  // <--- NEW PROP
   IPrtsProps: IPrtsProps;
 }
 
 const BaseInfoTab = React.forwardRef((props: BaseInfoProps, ref) => {
-  const { data, onSave, onFormChange, IPrtsProps } = props;
+  const { data, onSave, onDraft, onFormChange, onChange, IPrtsProps } = props;
   const { RequestId } = useParams<{ RequestId: string }>();
   const [formData, setFormData] = useState<BaseInfoData>(data || {});
   const [modeldata, setModelData] = useState<any[]>([]);
@@ -84,14 +87,14 @@ const BaseInfoTab = React.forwardRef((props: BaseInfoProps, ref) => {
   const [selectedIssueFiles, setSelectedIssueFiles] = useState<File[]>([]);
 
   const [isApprover, setIsApprover] = useState<boolean>(false);
-const [isEditMode, setIsEditMode] = useState<boolean>(false);
-const [attachmentMatrix, setAttachmentMatrix] = useState({
-  sosjes: "No",
-  control: "No",
-  pfmea: "No",
-  kaizen: "No",
-  qualityAlert: "No"
-});
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [attachmentMatrix, setAttachmentMatrix] = useState({
+    sosjes: "No",
+    control: "No",
+    pfmea: "No",
+    kaizen: "No",
+    qualityAlert: "No"
+  });
 
 const [matrixFiles, setMatrixFiles] = useState<{
   sosjes?: File[];
@@ -170,6 +173,10 @@ useEffect(() => {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { id, value } = event.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+    // NEW: Notify parent of changes
+    if (onChange) {
+      onChange({ ...formData, [id]: value });
+    }
   };
 
   const validateFields = () => {
@@ -222,24 +229,24 @@ useEffect(() => {
     }
 
     // Case 2: if Root Cause Found = No then Is7D required
-    if (formData.mRootCauseFound === "No") {
-      if (!formData.mIs7D) {
-        alert("Is 7D is required");
-        return false;
-      }
+    // if (formData.mRootCauseFound === "No") {
+    //   if (!formData.mIs7D) {
+    //     alert("Is 7D is required");
+    //     return false;
+    //   }
 
-      // Case 3: if Root Cause Found = No and Is7D = No then Agency + Part Quality Issue required
-      if (formData.mIs7D === "No") {
-        if (!formData.mAgency) {
-          alert("Agency is required");
-          return false;
-        }
-        if (!formData.mPartQualityIssue) {
-          alert("Part Quality Issue is required");
-          return false;
-        }
-      }
-    }
+    //   // Case 3: if Root Cause Found = No and Is7D = No then Agency + Part Quality Issue required
+    //   // if (formData.mIs7D === "No") {
+    //   //   if (!formData.mAgency) {
+    //   //     alert("Agency is required");
+    //   //     return false;
+    //   //   }
+    //   //   if (!formData.mPartQualityIssue) {
+    //   //     alert("Part Quality Issue is required");
+    //   //     return false;
+    //   //   }
+    //   // }
+    // }
     return true;
   };
 
@@ -315,7 +322,90 @@ useEffect(() => {
 
       // update local state and notify parent
       const updatedForm = { ...formData, selectedFiles, selectedIssueFiles };
-      onSave(updatedForm);
+      onSave(updatedForm, RequestId);
+
+      // alert('Saved successfully.');
+    } catch (err: any) {
+      console.error('Save error', err);
+      alert('Error while saving: ' + (err?.message || err));
+    } finally {
+      setLoadingSave(false);
+    }
+  };
+
+  const handleDraft = async () => {
+    if (!validateFields()) return;
+    try {
+      setLoadingSave(true);
+
+      // push basic form to parent first
+      // onSave(formData);
+
+      // if (!RequestId) {
+      //   alert('RequestId missing - save to SP skipped.');
+      //   return;
+      // }
+
+      // Decide workflow based on mIs7D
+      const itemUpdate: any = {};
+      const formattedDate = formatDate(new Date());
+
+      if (formData.mIs7D === 'Yes') {
+        // ensure diamondUsers loaded
+        const users = diamondUsers.length ? diamondUsers : await loadDiamondUsers(formData.mMFGShop || "");
+
+        // map to D1..D7 values (use Name)
+        const userNames = users.map(u => u.Name || "");
+
+        itemUpdate.D1_IssueData = JSON.stringify([{ c1: userNames[0] || "", c2: formattedDate }]);
+        itemUpdate.D2_IssueData = JSON.stringify([{ c1: userNames[1] || "", c2: formattedDate }]);
+        itemUpdate.D3_IssueData = JSON.stringify([{ c1: userNames[2] || "", c2: formattedDate }]);
+        itemUpdate.D4_IssueData = JSON.stringify([{ c1: userNames[3] || "", c2: formattedDate }]);
+        itemUpdate.D5_IssueData = JSON.stringify([{ c1: userNames[4] || "", c2: formattedDate }]);
+        itemUpdate.D6_IssueData = JSON.stringify([{ c1: userNames[5] || "", c2: formattedDate }]);
+        itemUpdate.D7_IssueData = JSON.stringify([{ c1: userNames[6] || "", c2: formattedDate }]);
+        // clear NonTechnical_IssueData
+        itemUpdate.NonTechnical_IssueData = "";
+
+        // Build ApproverList: initiator;user1;user2;...
+        const AL = [formData.mInitName || ""].concat(userNames.filter(Boolean)).join(';');
+        itemUpdate.ApproverList = AL;
+
+        // optional: set CH_Status
+        itemUpdate.CH_Status = '1/6';
+
+      } else {
+        // Non-technical path (mIs7D === 'No')
+        // Expect PeoplePicker stored in mPartQualityIssue (Id/Name/LoginName)
+        const user = formData.mPartQualityIssue;
+        const agency = formData.mAgency || "";
+        const userDisplay = (user && (user.Name || user.DisplayText || user.Title)) || "";
+
+        const nt = [{ c1: agency, c2: userDisplay, c3: formattedDate }];
+        itemUpdate.NonTechnical_IssueData = JSON.stringify(nt);
+
+        // clear D1..D7
+        itemUpdate.D1_IssueData = "";
+        itemUpdate.D2_IssueData = "";
+        itemUpdate.D3_IssueData = "";
+        itemUpdate.D4_IssueData = "";
+        itemUpdate.D5_IssueData = "";
+        itemUpdate.D6_IssueData = "";
+        itemUpdate.D7_IssueData = "";
+
+        // Approver list: initiator;selectedUser
+        const AL = [formData.mInitName || "", userDisplay].filter(Boolean).join(';');
+        itemUpdate.ApproverList = AL;
+
+        itemUpdate.CH_Status = '2/6';
+      }
+
+      // Persist to SharePoint
+      // await sp.web.lists.getByTitle('PRTSList').items.getById(Number(RequestId)).update(itemUpdate);
+
+      // update local state and notify parent
+      const updatedForm = { ...formData, selectedFiles, selectedIssueFiles };
+      onDraft(updatedForm);
 
       // alert('Saved successfully.');
     } catch (err: any) {
@@ -379,6 +469,7 @@ const deleteAttachment = async (fileName: string) => {
         "PartName",
         "PartNumbe",
         "Status",
+        "Stage",
         "SupplierName",
         "PRTSSource",
         "ProjectCode",
@@ -443,7 +534,7 @@ const deleteAttachment = async (fileName: string) => {
         mQtyAffected: item.QtyAffected || "",
         mVariantAffected: item.VariantAffected || "",
         mEngineType: item.EngineType || "",
-        mIsRepeated: item.RepeatedIssue || "",
+        mRepeatedIssue: item.RepeatedIssue || "",
         mRefNo: item.RefReqNo || "",
         mCommodity: item.Commodity || "",
         mPartSupplierSource: item.SupplierSource || "",
@@ -451,32 +542,33 @@ const deleteAttachment = async (fileName: string) => {
         mAgency: agencyName || "",
         mPartQualityIssue: getuserEmail || "",
         mRootCauseFound: item.IsRootCauseFound || "Select",
-        mIs7D: item.Is7DRequired || "Select",
+        mIs7D: item.Is7DRequired || "No",
         mAnalysis: item.AnalysisDetails || "",
         mInitName: item.Initiator?.Title || "",
         mIssueStatus: item.IssueStatus || "Open",
+        mStage: item.Stage || 0,
         mPurgingAttachment: item.PurgingAttachment || ""
       };
-setAttachmentMatrix(prev => ({
-  ...prev,
-  sosjes: item.SOSJESValue || "No"
-}));
-setAttachmentMatrix(prev => ({
-  ...prev,
-  control: item.ControlPlanValue || "No"
-}));
-setAttachmentMatrix(prev => ({
-  ...prev,
-  pfmea: item.PFMEAValue || "No"
-}));
-setAttachmentMatrix(prev => ({
-  ...prev,
-  kaizen: item.KaizenValue || "No"
-}));
-setAttachmentMatrix(prev => ({
-  ...prev,
-  qualityAlert: item.QualityAlertValue || "No"
-}));
+      setAttachmentMatrix(prev => ({
+        ...prev,
+        sosjes: item.SOSJESValue || "No"
+      }));
+      setAttachmentMatrix(prev => ({
+        ...prev,
+        control: item.ControlPlanValue || "No"
+      }));
+      setAttachmentMatrix(prev => ({
+        ...prev,
+        pfmea: item.PFMEAValue || "No"
+      }));
+      setAttachmentMatrix(prev => ({
+        ...prev,
+        kaizen: item.KaizenValue || "No"
+      }));
+      setAttachmentMatrix(prev => ({
+        ...prev,
+        qualityAlert: item.QualityAlertValue || "No"
+      }));
       GetEngineTypedata(IPrtsProps, item.ProjectCode);
       return formState;
 
@@ -717,6 +809,7 @@ const getPurgingAttachments = () => {
   );
 };
 
+
 const getIssueAttachments = () => {
   const issueValue = formData.mIssueAttachment
     ?.toString()
@@ -732,7 +825,8 @@ const getIssueAttachments = () => {
 
 
   React.useImperativeHandle(ref, () => ({
-    saveBaseInfo: handleSave
+    saveBaseInfo: handleSave,
+    DraftBaseInfo: handleDraft
   }));
 
   const downloadFile = (fileUrl: string) => {
@@ -749,15 +843,28 @@ const getIssueAttachments = () => {
     <div className="prts-container">
 
       {!isCreated && (
-        <div style={{ textAlign: "right", marginBottom: 10 }}>
+        <>
+        <div style={{ textAlign: "right", marginBottom: 10, gap: "10px", display: 'flex', justifyContent: 'end' }}>
           <button
-            className="btn btn-success"
+            type='button'
+            className="btn btn-default btnNonDraft btnsstwo"
             onClick={handleSave}
+            disabled={loadingSave}
+          >
+            {loadingSave ? 'Saving...' : 'Submit'}
+          </button>
+        {/* </div>
+        <div style={{ textAlign: "right", marginBottom: 20 }}> */}
+          <button
+            type='button'
+            className="btn btn-success"
+            onClick={handleDraft}
             disabled={loadingSave}
           >
             {loadingSave ? 'Saving...' : 'Save'}
           </button>
         </div>
+        </>
       )}
 
 
@@ -786,7 +893,7 @@ const getIssueAttachments = () => {
 
           <div className="form-row">
 
-
+ 
             <label><span className="required">*</span>MFG Shop Selection</label>
             <select id="mMFGShop" disabled={isCreated} value={formData.mMFGShop || ''} onChange={handleChange}>
               <option value="">Select</option>
@@ -795,8 +902,8 @@ const getIssueAttachments = () => {
               ))}
             </select>
 
-            <label><span className="required">*</span>Issue Status</label>
-            <input id="mIssueStatus" value={formData.mIssueStatus || ''} onChange={handleChange} disabled />
+            {/* <label><span className="required">*</span>Issue Status</label>
+            <input id="mIssueStatus" value={formData.mIssueStatus || ''} onChange={handleChange} disabled /> */}
           </div>
 
         </div>
@@ -943,10 +1050,10 @@ const getIssueAttachments = () => {
             </select>
 
             {/* Show 7D Process only when Root Cause is NO */}
-            {formData.mRootCauseFound === "No" && (
+            {formData.mRootCauseFound === "Not" && (
               <>
                 <label><span className="required">*</span>Require 7D Process</label>
-                <select name="mIs7D" id="mIs7D" value={formData.mIs7D || 'Select'} disabled={isCreated}
+                <select name="mIs7D" id="mIs7D" value={'No'} disabled
                   onChange={(e) => {
                     const value = e.target.value;
 
@@ -969,7 +1076,7 @@ const getIssueAttachments = () => {
           {/* Agency + Part Quality Issue Conditions */}
           {(
             (formData.mRootCauseFound === "Yes") ||
-            (formData.mRootCauseFound === "No" && formData.mIs7D === "No")
+            (formData.mRootCauseFound === "No" )
           ) && (
               <div className="form-row">
                 <label><span className="required">*</span>Agency user</label>
@@ -1015,395 +1122,60 @@ const getIssueAttachments = () => {
               </div>
             )}
 
-          <div className="form-row">
-            <label><span className="required">*</span>Download Purging Template</label>
-            <button
-              className="btn btn-sm btn-danger"
-              onClick={() => 
-                downloadFile(
-                  `${props.IPrtsProps.currentSPContext.pageContext.web.absoluteUrl}/Template/PurgingReportFormat.pdf`
-                )
-              }
-            >
-              Download Template
-            </button>
-          </div>
+          {!isCreated && (
+            <div className="form-row">
+              <label><span className="required">*</span>Download Purging Template</label>
+              <button
+                className="btn btn-sm btn-danger"
+                onClick={() => 
+                  downloadFile(
+                    `${props.IPrtsProps.currentSPContext.pageContext.web.absoluteUrl}/Template/PurgingReportFormat.pdf`
+                  )
+                }
+              >
+                Download Template
+              </button>
+            </div>
+          )}
           <div className="form-row">
             <label><span className="required">*</span>Purging Attachment</label>
-            {formData.mPurgingAttachment || (
-              <input
-                type="file"
-                className="form-control"
-                multiple
-                disabled={isCreated}
-                accept=".pdf"
-                onChange={(e) => {
-                  if (e.target.files) {
-                    setSelectedFiles(Array.from(e.target.files));
-                  }
-                }}
-              />
-            )}
+              {(formData.mStage === 0 || formData.mStage === undefined || formData.mStage === null) && (
+                <input
+                  type="file"
+                  className="form-control"
+                  multiple
+                  accept=".pdf"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setSelectedFiles(Array.from(e.target.files));
+                    }
+                  }}
+                />
+              )}
           </div>
-        {getPurgingAttachments().length > 0 && (
-  <ul>
-    {getPurgingAttachments().map((file) => (
-      <li key={file.FileName} className="d-flex align-items-center gap-2">
-        <a
-          href={file.ServerRelativeUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {file.FileName}
-        </a>
-
-        <button
-          className="btn btn-sm btn-danger"
-          onClick={() => deleteAttachment(file.FileName)}
-        >
-          ❌
-        </button>
-      </li>
-    ))}
-  </ul>
-)}
-
-<div className="form-row">
-            <label><span className="required">*</span>Issue Attachment</label>
-            {formData.mIssueAttachment || (
-              <input
-                type="file"
-                className="form-control"
-                multiple
-                disabled={isCreated}
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.bmp,.webp"
-                onChange={(e) => {
-                  if (e.target.files) {
-                    setSelectedIssueFiles(Array.from(e.target.files));
-                  }
-                }}
-              />
-            )}
-          </div>
-        {getIssueAttachments().length > 0 && (
-  <ul>
-    {getIssueAttachments().map((file) => (
-      <li key={file.FileName} className="d-flex align-items-center gap-2">
-        <a
-          href={file.ServerRelativeUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {file.FileName}
-        </a>
-
-        <button
-          className="btn btn-sm btn-danger"
-          onClick={() => deleteAttachment(file.FileName)}
-        >
-          ❌
-        </button>
-      </li>
-    ))}
-  </ul>
-)}
-
-{isCreated && (
-  <table className="table table-bordered" id="tabelAttachment">
-    <colgroup>
-      <col width="20%" />
-      <col width="20%" />
-      <col width="20%" />
-      <col width="20%" />
-      <col width="20%" />
-    </colgroup>
-
-    <thead>
-      <tr>
-        <th>SOS/JES</th>
-        <th>Control Plan</th>
-        <th>PFMEA</th>
-        <th>Kaizen</th>
-        <th>Quality Alert</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      <tr>
-        {/* SOS/JES */}
-        <td>
-          <select
-            className="form-control"
-            value={attachmentMatrix.sosjes}
-onChange={async (e) => {
-  const value = e.target.value;
-
-  setAttachmentMatrix(prev => ({ ...prev, sosjes: value }));
-
-  if (RequestId) {
-    await sp.web.lists
-      .getByTitle("PRTSList")
-      .items.getById(Number(RequestId))
-      .update({
-        SOSJESValue: value
-      });
-  }
-}}
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-
-          {attachmentMatrix.sosjes === "Yes" && (
-            <input
-              type="file"
-              className="form-control mt-2"
-              multiple
-              accept=".pdf,.ppt,.pptx,.xls,.xlsx"
-              onChange={(e) =>
- uploadMatrixAttachment("sosjes", e.target.files)
-              }
-            />
+          {getPurgingAttachments().length > 0 && (
+            <ul>
+              {getPurgingAttachments().map((file) => (
+                <li key={file.FileName} className="d-flex align-items-center gap-2">
+                  <a
+                    href={file.ServerRelativeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {file.FileName}
+                  </a>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => deleteAttachment(file.FileName)}
+                  >
+                    ❌
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
-          {getAttachmentsByPrefix("SOSJESAttachment").map(file => (
-  <div key={file.FileName} className="d-flex align-items-center">
-    <a href={file.ServerRelativeUrl} target="_blank" rel="noreferrer">
-      {file.FileName.replace("SOSJESAttachment_", "")}
-    </a>
-    <button
-      className="btn btn-sm btn-danger"
-      onClick={() => deleteAttachment(file.FileName)}
-    >
-      ❌
-    </button>
-  </div>
-  
-))}
-        </td>
-
-        {/* Control Plan */}
-        <td>
-          <select
-            className="form-control"
-            value={attachmentMatrix.control}
-            // onChange={(e) =>
-            //   setAttachmentMatrix({ ...attachmentMatrix, control: e.target.value })
-            // }
-            onChange={async (e) => {
-  const value = e.target.value;
-
-  setAttachmentMatrix(prev => ({ ...prev, control: value }));
-
-  if (RequestId) {
-    await sp.web.lists
-      .getByTitle("PRTSList")
-      .items.getById(Number(RequestId))
-      .update({
-        ControlPlanValue: value
-      });
-  }
-}}
-
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-
-          {attachmentMatrix.control === "Yes" && (
-            <input
-              type="file"
-              className="form-control mt-2"
-              accept=".pdf,.ppt,.pptx,.xls,.xlsx"
-              multiple
-              onChange={(e) =>
-uploadMatrixAttachment("control", e.target.files)   
-           }
-            />
-          )}
-          {getAttachmentsByPrefix("ControlPlan").map(file => (
-  <div key={file.FileName} className="d-flex align-items-center">
-    <a href={file.ServerRelativeUrl} target="_blank" rel="noreferrer">
-      {file.FileName.replace("ControlPlan", "")}
-    </a>
-    <button
-      className="btn btn-sm btn-danger"
-      onClick={() => deleteAttachment(file.FileName)}
-    >
-      ❌
-    </button>
-  </div>
-))}
-        </td>
-
-        {/* PFMEA */}
-        <td>
-          <select
-            className="form-control"
-            value={attachmentMatrix.pfmea}
-            // onChange={(e) =>
-            //   setAttachmentMatrix({ ...attachmentMatrix, pfmea: e.target.value })
-            // }
-            onChange={async (e) => {
-  const value = e.target.value;
-
-  setAttachmentMatrix(prev => ({ ...prev, pfmea: value }));
-
-  if (RequestId) {
-    await sp.web.lists
-      .getByTitle("PRTSList")
-      .items.getById(Number(RequestId))
-      .update({
-        PFMEAValue: value
-      });
-  }
-}}
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-
-          {attachmentMatrix.pfmea === "Yes" && (
-            <input
-              type="file"
-              className="form-control mt-2"
-              multiple
-              accept=".pdf,.ppt,.pptx,.xls,.xlsx"
-              onChange={(e) =>
-uploadMatrixAttachment("pfmea", e.target.files)
-              }
-            />
-          )}
-          {getAttachmentsByPrefix("PFMEAAttachment").map(file => (
-  <div key={file.FileName} className="d-flex align-items-center">
-    <a href={file.ServerRelativeUrl} target="_blank" rel="noreferrer">
-      {file.FileName.replace("PFMEAAttachment_", "")}
-    </a>
-    <button
-      className="btn btn-sm btn-danger"
-      onClick={() => deleteAttachment(file.FileName)}
-    >
-      ❌
-    </button>
-  </div>
-))}
-        </td>
-
-        {/* Kaizen */}
-        <td>
-          <select
-            className="form-control"
-            value={attachmentMatrix.kaizen}
-            // onChange={(e) =>
-            //   setAttachmentMatrix({ ...attachmentMatrix, kaizen: e.target.value })
-            // }
-            onChange={async (e) => {
-  const value = e.target.value;
-
-  setAttachmentMatrix(prev => ({ ...prev, kaizen: value }));
-
-  if (RequestId) {
-    await sp.web.lists
-      .getByTitle("PRTSList")
-      .items.getById(Number(RequestId))
-      .update({
-        KaizenValue: value
-      });
-  }
-}}
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-
-          {attachmentMatrix.kaizen === "Yes" && (
-            <input
-              type="file"
-              className="form-control mt-2"
-              multiple
-              accept=".pdf,.ppt,.pptx,.xls,.xlsx"
-              onChange={(e) =>
-uploadMatrixAttachment("kaizen", e.target.files)  
-            }
-            />
-          )}
-          {getAttachmentsByPrefix("KaizenAttachment").map(file => (
-  <div key={file.FileName} className="d-flex align-items-center">
-    <a href={file.ServerRelativeUrl} target="_blank" rel="noreferrer">
-      {file.FileName.replace("KaizenAttachment_", "")}
-    </a>
-    <button
-      className="btn btn-sm btn-danger"
-      onClick={() => deleteAttachment(file.FileName)}
-    >
-      ❌
-    </button>
-  </div>
-))}
-        </td>
-
-        {/* Quality Alert */}
-        <td>
-          <select
-            className="form-control"
-            value={attachmentMatrix.qualityAlert}
-            // onChange={(e) =>
-            //   setAttachmentMatrix({
-            //     ...attachmentMatrix,
-            //     qualityAlert: e.target.value
-            //   })
-            // }
-            onChange={async (e) => {
-  const value = e.target.value;
-
-  setAttachmentMatrix(prev => ({ ...prev, qualityAlert: value }));
-
-  if (RequestId) {
-    await sp.web.lists
-      .getByTitle("PRTSList")
-      .items.getById(Number(RequestId))
-      .update({
-        QualityAlertValue: value
-      });
-  }
-}}
-          >
-            <option value="No">No</option>
-            <option value="Yes">Yes</option>
-          </select>
-
-          {attachmentMatrix.qualityAlert === "Yes" && (
-            <input
-              type="file"
-              className="form-control mt-2"
-              multiple
-              accept=".pdf,.ppt,.pptx,.xls,.xlsx"
-              onChange={(e) =>
-uploadMatrixAttachment("qualityAlert", e.target.files)              }
-            />
-          )}
-          {getAttachmentsByPrefix("QualityAlertAttachment").map(file => (
-  <div key={file.FileName} className="d-flex align-items-center">
-    <a href={file.ServerRelativeUrl} target="_blank" rel="noreferrer">
-      {file.FileName.replace("QualityAlertAttachment_", "")}
-    </a>
-    <button
-      className="btn btn-sm btn-danger"
-      onClick={() => deleteAttachment(file.FileName)}
-    >
-      ❌
-    </button>
-  </div>
-))}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-)}
-
-
         </div>
       </div>
-
     </div>
   );
 });

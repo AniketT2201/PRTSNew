@@ -210,3 +210,25 @@
 .justifycontentsavebutton{
     justify-content: right !important;
 }
+
+.fontcolor {
+  font-size: 16px;
+  font-weight: bold;
+  background: linear-gradient(to right, #000000, #d60000);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+.fontcolorstatus{
+  font-size: 14px !important;
+  font-weight: bold;
+  color: red;
+}
+.font{
+  font-weight: bold;
+  font-size: 14px !important;
+}
+.displayStatus {
+  display: flex !important;
+}
