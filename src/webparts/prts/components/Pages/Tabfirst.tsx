@@ -6,8 +6,10 @@ import "../Pages/CSS/BaseInfoTab.scss";
 import SPCRUDOPS from '../../service/DAL/spcrudops';
 import { IDropdownOption } from 'office-ui-fabric-react';
 import { sp } from '@pnp/sp/presets/all';
+import { Web } from '@pnp/sp/presets/all';
 import { PeoplePicker, PrincipalType } from "@pnp/spfx-controls-react/lib/PeoplePicker";
 import { useParams } from 'react-router-dom';
+import IPRTSACLRequestsOps from '../../service/BAL/SPCRUD/PRTSACL';
 
 interface DiamondUser {
   Id: number;
@@ -80,6 +82,8 @@ const BaseInfoTab = React.forwardRef((props: BaseInfoProps, ref) => {
   const [reqId, setRequestId] = useState<string | undefined>(undefined);
   const [diamondUsers, setDiamondUsers] = useState<DiamondUser[]>([]);
   const [loadingSave, setLoadingSave] = useState(false);
+  const [AgencyPickerKey, setAgencyPickerKey] = useState(0);
+  const [aclData, setAclData] = useState<any[]>([]);
 
   const [isCreated, setIsCreated] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<any[]>([]);
@@ -105,15 +109,61 @@ const [matrixFiles, setMatrixFiles] = useState<{
 }>({});
 useEffect(() => {
   if (!RequestId) {
-              setIsCreated(false);
-
+    setIsCreated(false);
   }
 }, [RequestId]);
 
 
   useEffect(() => { setFormData(prev => ({ ...prev, ...data })); }, [data]);
 
+  const GetACLData = async () => {
+    try {
+      const ACLData = await IPRTSACLRequestsOps().getIPRTSACLData(
+        { column: "ID", isAscending: true },
+        props.IPrtsProps,
+        `UserName/EMail ne null and EmployeeID ne null and Status eq 'Active'`
+      )
+      setAclData(ACLData);
+    } catch (err: any) {
+      console.error(err.message);
+      alert("Error fetching ACL data. Please try again.");
+    } 
+  }
+  
+  useEffect(() => {
+    GetACLData();
+  }, []);
 
+  const GetEmployeeID = async (Email: string): Promise<string | null> => {
+    try {
+      const spCrudOps = await SPCRUDOPS();
+      const EmployeeProfiledata = await spCrudOps.getRootData(
+        'UserMaster',
+        'EmployeeId,Id,FullName/Title,FullName/ID,FullName/EMail,DirectManagerName/Title,DirectManagerName/ID,DirectManagerName/EMail,OfficeCity/CompanyLocation,OfficeCity/ID,DepartmentCode/Department,DepartmentCode/ID',
+        'FullName,DirectManagerName,OfficeCity,DepartmentCode',
+        `FullName/EMail eq '${Email}' and EmployeeStatus eq 'Active'`,
+        { column: 'ID', isAscending: true },
+        props.IPrtsProps
+      );
+      if (!EmployeeProfiledata || EmployeeProfiledata.length === 0) {
+        console.warn("Employee ID not found for email:", Email);
+        return null;
+      }
+      if (EmployeeProfiledata.length > 1) {
+        console.warn("Multiple active employees found with the same email:", Email);
+        return null;
+      }
+      const empId = EmployeeProfiledata[0]?.EmployeeId;
+      if (!empId) {
+        console.warn("EmployeeId field missing for email:", Email);
+        return null;
+      }
+      return empId;
+    } catch (error) {
+      console.error("Error fetching Employee ID for " + Email + ":", error);
+      return null;
+    }
+  }
 
   useEffect(() => {
     GetIssueCategory(IPrtsProps);
@@ -515,7 +565,7 @@ const deleteAttachment = async (fileName: string) => {
         userName = '';
       }
 
-      const getuserdata = getUserDetailsByName(userName);
+      const getuserdata = await getUserDetailsByName(userName);
       const getuserEmail = (await getuserdata)?.Email || '';
 
       const formState: BaseInfoData = {
@@ -540,7 +590,9 @@ const deleteAttachment = async (fileName: string) => {
         mPartSupplierSource: item.SupplierSource || "",
         mInitDept: item.InitDepartment || "",
         mAgency: agencyName || "",
-        mPartQualityIssue: getuserEmail || "",
+        mPartQualityIssue: getuserdata
+          ? { Id: getuserdata.Id, LoginName: getuserdata.LoginName, Name: getuserdata.Title, Email: getuserdata.Email }
+          : null,
         mRootCauseFound: item.IsRootCauseFound || "Select",
         mIs7D: item.Is7DRequired || "No",
         mAnalysis: item.AnalysisDetails || "",
@@ -1081,34 +1133,52 @@ const getIssueAttachments = () => {
               <div className="form-row">
                 <label><span className="required">*</span>Agency user</label>
                 <PeoplePicker
+                  key={AgencyPickerKey}
                   disabled={isCreated}
                   context={IPrtsProps.currentSPContext}
                   personSelectionLimit={1}
                   showtooltip={true}
                   tooltipDirectional={1}
                   required={false}
-                  //disabled={false}
                   principalTypes={[PrincipalType.User]}
                   resolveDelay={500}
-                  defaultSelectedUsers={[formData.mPartQualityIssue]}
+                  defaultSelectedUsers={formData.mPartQualityIssue?.Email ? [formData.mPartQualityIssue.Email] : []}
                   onChange={async (items: any[]) => {
                     if (items.length === 0) {
                       setFormData(prev => ({ ...prev, mPartQualityIssue: null }));
                       return;
                     }
-
-                    const loginName = items[0].loginName;
-                    const spUser = await sp.web.ensureUser(loginName);
-
-                    setFormData(prev => ({
-                      ...prev,
-                      mPartQualityIssue: {
-                        Id: spUser.data.Id,
-                        LoginName: loginName,
-                        Name: items[0].text,
-                        Email: items[0].secondaryText
+                    try {
+                      const email = items[0].secondaryText || items[0].loginName;
+                      const checkACLData = aclData.find((acl) => acl.UserNameEmail?.toLowerCase() === email.toLowerCase());
+                      if (!checkACLData) {
+                        alert("Selected user does not exist in ACL. \nPlease Contact IT team.");
+                        setFormData(prev => ({ ...prev, mPartQualityIssue: null }));
+                        setAgencyPickerKey(prev => prev + 1); // reset PeoplePicker
+                        return;
                       }
-                    }));
+                      const empId = await GetEmployeeID(email);
+                      if (!empId) {
+                        alert("Selected user does not exist in User Master. \nPlease Contact IT team.");
+                        setFormData(prev => ({ ...prev, mPartQualityIssue: null }));
+                        setAgencyPickerKey(prev => prev + 1); // reset PeoplePicker
+                        return;
+                      }
+                      const loginName = items[0].loginName;
+                      const web = Web(props.IPrtsProps.currentSPContext.pageContext.web.absoluteUrl);
+                      const user = await web.ensureUser(items[0].loginName);
+                      setFormData(prev => ({
+                        ...prev,
+                        mPartQualityIssue: {
+                          Id: user.data.Id,
+                          LoginName: loginName,
+                          Name: items[0].text,
+                          Email: items[0].secondaryText
+                        }
+                      }));
+                    } catch (error) {
+                      console.error("Error ensuring user for Id:", error);
+                    }
                   }}
                 />
 
@@ -1164,12 +1234,16 @@ const getIssueAttachments = () => {
                   >
                     {file.FileName}
                   </a>
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => deleteAttachment(file.FileName)}
-                  >
-                    ❌
-                  </button>
+                  {(formData.mStage === 0 || formData.mStage === undefined || formData.mStage === null) && (
+                    <>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => deleteAttachment(file.FileName)}
+                      >
+                        ❌
+                      </button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

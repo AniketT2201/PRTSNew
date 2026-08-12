@@ -1026,14 +1026,10 @@ const handleBaseInfoSave = async (formState: any, reqId?: string | number) => {
  
     // Same logic as before for CH_Status and ApproverList
     // (D1-D7 disciplines removed: these branches no longer clear D1_IssueData..D7_IssueData)
-    if (cleanedForm.mRootCauseFound === "Yes") {
       updateData.CH_Status = "1/6";
       updateData.ApproverList = `${initiatorName}`;
-    } else if (cleanedForm.mIs7D === "No") {
       updateData.CH_Status = "1/6";
-      updateData.NonTechnical_IssueData = finalNonTechJson;
       updateData.ApproverList = `${initiatorName}`;
-    }
  
     // FIX #1: strip empty/undefined/null fields before merging into an
     // EXISTING item so untouched form fields don't blank out saved data.
@@ -1062,24 +1058,24 @@ const handleBaseInfoSave = async (formState: any, reqId?: string | number) => {
     submitData.Summary = JSON.stringify(existingSummary);
  
     if (activeTechData && activeTechData.issueAssignTo) {
-      const t = [{
-        c1: activeTechData.agencyName,
-        c2: activeTechData.issueAssignTo,
-        c3: formatDate(new Date()),
-        c4: activeTechData.mNTAnalysis,
-        c5: activeTechData.mNTRootCauseFound,
-        c6: activeTechData.mNTICA_Details,
-        c7: activeTechData.mNTICA_VIN,
-        c8: activeTechData.mNTPCA_Details,
-        c9: activeTechData.mNTPCA_VIN,
-        c10: activeTechData.mNT_Remarks,
-        c13: activeTechData.mNT_RootCause
-      }];
+      // const t = [{
+      //   c1: activeTechData.agencyName,
+      //   c2: activeTechData.issueAssignTo,
+      //   c3: formatDate(new Date()),
+      //   c4: activeTechData.mNTAnalysis,
+      //   c5: activeTechData.mNTRootCauseFound,
+      //   c6: activeTechData.mNTICA_Details,
+      //   c7: activeTechData.mNTICA_VIN,
+      //   c8: activeTechData.mNTPCA_Details,
+      //   c9: activeTechData.mNTPCA_VIN,
+      //   c10: activeTechData.mNT_Remarks,
+      //   c13: activeTechData.mNT_RootCause
+      // }];
       const assignTo = activeTechData.issueAssignTo;
       submitData.NAId = await getUserId(assignTo);
       const delegated = await checkDelegation(assignTo);
       submitData.DAId = delegated ? await getUserId(delegated) : null;
-      submitData.NonTechnical_IssueData = JSON.stringify(t);
+      // submitData.NonTechnical_IssueData = JSON.stringify(t);
     }
  
     submitData.LastAction = new Date();
@@ -1894,9 +1890,18 @@ const handleAssignSubmit = async (data: { agency: string; status: string; user: 
     }
  
     // -------------------------
-    // 1️⃣ Resolve Next Approver (NA)
+    // 1️⃣ Resolve Next Approver (NA) + Employee ID
     // -------------------------
-    const nextApproverId = await getUserId(user);
+    const ensuredUser = await sp.web.ensureUser(user);
+    const nextApproverId = ensuredUser.data.Id;
+    const nextApproverEmail = ensuredUser.data.Email;
+
+    const nextApproverProfile = await IEmployeeProfileops().getEmployeeProfile(
+      nextApproverEmail || null,
+      props
+    );
+    const nextApproverEmpId = nextApproverProfile[0]?.EmployeeID || null;
+
  
     // -------------------------
     // 2️⃣ Check Delegation (DA)
@@ -1938,6 +1943,7 @@ const handleAssignSubmit = async (data: { agency: string; status: string; user: 
     // -------------------------
     const updateObj: any = {
       NAId: nextApproverId,
+      NextApproverEmpID: nextApproverEmpId,
       DAId: delegatedId,
       Stage: 2,
       Status: "In process - Tech",
@@ -2714,7 +2720,7 @@ async function WrongIssueAssign() {
 }
 
 async function handleonClickRework() {
-    try {
+  try {
     setLoading(true);
     if (!reqId) {
       alert("Request ID missing");
@@ -2855,14 +2861,14 @@ const buildWorkflow = () => {
           />
 
           <RemarksModal isOpen={isRemarksOpen} onClose={closeRemarksModal} onUpdate={handleRemarksUpdate} remarksTitle={remarksTitle} />
-<AssignToAnotherUserModal
-    isOpen={isAssignUserOpen}
-    onClose={closeAssignUserModal}
-    onSubmit={handleAssignSubmit}
-    // agencies={agencies}
-    context={props.currentSPContext} 
-    parentProps={props} 
-/>
+          <AssignToAnotherUserModal
+              isOpen={isAssignUserOpen}
+              onClose={closeAssignUserModal}
+              onSubmit={handleAssignSubmit}
+              // agencies={agencies}
+              context={props.currentSPContext} 
+              parentProps={props} 
+          />
           {/* Description section */}
           <div >
             <div id='showApprovalFlow'>

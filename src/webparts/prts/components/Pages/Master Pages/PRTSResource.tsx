@@ -200,11 +200,12 @@ export const PRTSResource: React.FC<IPrtsProps> = (props: IPrtsProps) => {
         setLoading(true);
         try {
             // 🔹 Check duplicate PRTSResourceName
-            if (vendorForm.Title !== originalPRTSResourceTitle) {
+            // if (vendorForm.Title !== originalPRTSResourceTitle) {
+              const title = vendorForm.Title.trim();
               const vendorData = await MasterPagesRequestsOps().getPRTSResourceData(
                   { column: "ID", isAscending: true },
                   props,
-                  `Title eq '${vendorForm.Title}'`
+                  `Title eq '${title.replace(/'/g, "''")}'`
               );
 
               // 🔹 Ignore same record when editing
@@ -217,7 +218,7 @@ export const PRTSResource: React.FC<IPrtsProps> = (props: IPrtsProps) => {
                   setLoading(false);
                   return;
               }
-            }  
+            // }  
             if (isEdit && selectedId) {
             await spCrudObj.updateData('PRTSResource', selectedId, vendorForm, props);
             alert("PRTS Resource details updated successfully!");

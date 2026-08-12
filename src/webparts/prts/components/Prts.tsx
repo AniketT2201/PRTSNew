@@ -30,6 +30,15 @@ const Drr: React.FC<IPrtsProps> = (props) => {
 
   const hasAccess = EmployeeId.length > 0;
 
+  const readerAccessDenied = () => (
+    <div
+      className="d-flex justify-content-center align-items-center"
+      style={{ height: "100vh" }}
+    >
+      <h3>No access. Please contact the IT team.</h3>
+    </div>
+  );
+
 
   if (props.Maintenance === true) {
     return (
@@ -67,11 +76,19 @@ const Drr: React.FC<IPrtsProps> = (props) => {
               <Switch>
                 <Route
                   path="/InitiatorLanding"
-                  render={() => <ProblemResolutionTrackingSystem {...props} />}
+                  render={() => 
+                    props.Reader === true
+                      ? readerAccessDenied()
+                      : <ProblemResolutionTrackingSystem {...props} />
+                  }
                 />
                 <Route
                   path="/InitiatorLandingedit/:RequestId"
-                  render={() => <Approval {...props} />}
+                  render={() => 
+                    props.Reader === true
+                      ? readerAccessDenied()
+                      : <Approval {...props} />
+                  }
                 />
                 <Route
                   exact

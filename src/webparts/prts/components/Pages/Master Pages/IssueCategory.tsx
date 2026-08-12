@@ -200,11 +200,12 @@ export const IssueCategory: React.FC<IPrtsProps> = (props: IPrtsProps) => {
         setLoading(true);
         try {
             // 🔹 Check duplicate IssueCategoryName
-            if (vendorForm.Title !== originalIssueCategoryTitle) {
+            // if (vendorForm.Title !== originalIssueCategoryTitle) {
+              const title = vendorForm.Title.trim();
               const vendorData = await MasterPagesRequestsOps().getIssueCategoryData(
                   { column: "ID", isAscending: true },
                   props,
-                  `Title eq '${vendorForm.Title}'`
+                  `Title eq '${title.replace(/'/g, "''")}'`
               );
 
               // 🔹 Ignore same record when editing
@@ -217,7 +218,7 @@ export const IssueCategory: React.FC<IPrtsProps> = (props: IPrtsProps) => {
                   setLoading(false);
                   return;
               }
-            }  
+            // }  
             if (isEdit && selectedId) {
             await spCrudObj.updateRootData('IssueCategoryList', selectedId, vendorForm, props);
             alert("Issue Category details updated successfully!");

@@ -200,11 +200,12 @@ export const MFGShopSelection: React.FC<IPrtsProps> = (props: IPrtsProps) => {
         setLoading(true);
         try {
             // 🔹 Check duplicate MFGShopSelectionName
-            if (vendorForm.Title !== originalMFGShopSelectionTitle) {
+            // if (vendorForm.Title !== originalMFGShopSelectionTitle) {
+              const title = vendorForm.Title.trim();
               const vendorData = await MasterPagesRequestsOps().getMFGShopSelectionData(
                   { column: "ID", isAscending: true },
                   props,
-                  `Title eq '${vendorForm.Title}'`
+                  `Title eq '${title.replace(/'/g, "''")}'`
               );
 
               // 🔹 Ignore same record when editing
@@ -217,7 +218,7 @@ export const MFGShopSelection: React.FC<IPrtsProps> = (props: IPrtsProps) => {
                   setLoading(false);
                   return;
               }
-            }  
+            // }  
             if (isEdit && selectedId) {
             await spCrudObj.updateRootData('MFGShopList', selectedId, vendorForm, props);
             alert("MFG Shop details updated successfully!");

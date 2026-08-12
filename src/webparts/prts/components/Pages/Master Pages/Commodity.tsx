@@ -286,11 +286,12 @@ export const Commodity: React.FC<IPrtsProps> = (props: IPrtsProps) => {
         setLoading(true);
         try {
             // 🔹 Check duplicate CommodityName
-            if (vendorForm.Title !== originalCommodityTitle) {
+            // if (vendorForm.Title !== originalCommodityTitle) {
+              const title = vendorForm.Title.trim();
               const vendorData = await MasterPagesRequestsOps().getCommodityData(
                   { column: "ID", isAscending: true },
                   props,
-                  `Title eq '${vendorForm.Title}' and CommodityHeadId eq ${vendorForm.CommodityHeadId} and CommodityLeadId eq ${vendorForm.CommodityLeadId}`
+                  `Title eq '${title.replace(/'/g, "''")}' and CommodityHeadId eq ${vendorForm.CommodityHeadId} and CommodityLeadId eq ${vendorForm.CommodityLeadId}`
               );
 
               // 🔹 Ignore same record when editing
@@ -303,7 +304,7 @@ export const Commodity: React.FC<IPrtsProps> = (props: IPrtsProps) => {
                   setLoading(false);
                   return;
               }
-            }  
+            // }  
             const payload = {
                 Title: vendorForm.Title,
                 CommodityHeadId: vendorForm.CommodityHeadId,

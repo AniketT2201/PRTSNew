@@ -200,11 +200,12 @@ export const BuildType: React.FC<IPrtsProps> = (props: IPrtsProps) => {
         setLoading(true);
         try {
             // 🔹 Check duplicate BuildTypeName
-            if (vendorForm.Title !== originalBuildTypeTitle) {
+            // if (vendorForm.Title !== originalBuildTypeTitle) {
+              const title = vendorForm.Title.trim();
               const vendorData = await MasterPagesRequestsOps().getBuildTypeData(
                   { column: "ID", isAscending: true },
                   props,
-                  `Title eq '${vendorForm.Title}'`
+                  `Title eq '${title.replace(/'/g, "''")}'`
               );
 
               // 🔹 Ignore same record when editing
@@ -217,7 +218,7 @@ export const BuildType: React.FC<IPrtsProps> = (props: IPrtsProps) => {
                   setLoading(false);
                   return;
               }
-            }  
+            // }  
             if (isEdit && selectedId) {
             await spCrudObj.updateRootData('BuildType', selectedId, vendorForm, props);
             alert("Build Type details updated successfully!");
