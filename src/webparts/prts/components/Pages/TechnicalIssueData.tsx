@@ -622,7 +622,7 @@ const uploadAttachmentsToList = async (
         );
         const newC = {
           c1: editingData.agencyName || "",
-          c2: props.userDisplayName || editingData.issueAssignTo || "",
+          c2: nextApprover || editingData.issueAssignTo || "",
           c3: editingData.assignDate || "",
           c4: editingData.mNTAnalysis || "",
           c5: editingData.mNTRootCauseFound || "",
@@ -1311,7 +1311,7 @@ const uploadAttachmentsToList = async (
                   <tbody>
                     <tr>
                       <td colSpan={2}>
-                        <input readOnly className="txtFullWidth form-control" type="text" id="vNTAgencyName" value={formData.agencyName || ""} />
+                        <input readOnly className="txtFullWidth form-control" type="text" id="vNTAgencyName" value={nextApprover} />
                       </td>
                       <td colSpan={2}>
                         <input readOnly className="txtFullWidth form-control" type="text" id="vNTAssignTo" value={formData.issueAssignTo || ""} />

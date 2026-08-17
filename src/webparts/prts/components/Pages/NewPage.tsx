@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { IPrtsProps } from '../IPrtsProps';
 import ButtonBar from './ButtonBar';
 import { useHistory, useParams } from 'react-router-dom';
@@ -14,6 +14,9 @@ import Tab10Summary from './NewTabSummary';
 import SPCRUDOPS from '../../service/DAL/spcrudops';
 import IEmployeeProfileops from '../../service/BAL/SPCRUD/EmployeeProfile';
 import '../../components/Pages/CSS/NewPage.scss';
+// Add to imports at top of Approval.tsx
+import html2pdf from 'html2pdf.js';
+
 const AppContext = createContext(null);
 
 const AppProvider = ({ children }) => {
@@ -65,6 +68,11 @@ interface TechIssueData {
   mNT_RootCause: string;
 }
 
+interface IRequestAttachment {
+  FileName: string;
+  ServerRelativeUrl: string;
+}
+
 const formatDateTime = (date: Date) => date.toISOString();
 
 const ProblemResolutionTrackingSystem = (props: IPrtsProps) => {
@@ -92,6 +100,9 @@ const ProblemResolutionTrackingSystem = (props: IPrtsProps) => {
   const [canEditTabs, setCanEditTabs] = useState({});
   const [commodityselected, setcommodityselected] = useState<string>('');
   const [severityLevel, setSeverityLevel] = useState<string>('');
+  const [requestAttachments, setRequestAttachments] = useState<IRequestAttachment[]>([]);
+  // Inside Approval component, alongside your other state:
+  const pdfRef = useRef<HTMLDivElement>(null);
   const [baseInfoData, setBaseInfoData] = React.useState({
     mIssueCategory: '',
     mRepeatedIssue: '',
@@ -201,70 +212,6 @@ const [nonTechnicalIssueData, setNonTechnicaIssueData] = useState("");
     spfxContext: props.currentSPContext
   });
 
-
-//   const resetAllStateForNewRequest = () => {
-//   setRequestId(undefined);
-//   setRequestNumber("");
-//   setProblemDescription("");
-
-//   // Base Info
-//   setBaseInfoData({
-//     mIssueCategory: '',
-//     mRepeatedIssue: '',
-//     mInitDept: "",
-//     mInitName: userDisplayName || "",
-//     mIssueStatus: "Open",
-//     mIs7D: "",
-//     mRootCauseFound: "",
-//     mAnalysis: "",
-//     mPurgingAttachment: '',
-//     mTitle: "",
-//     mPartName: "",
-//     mPartNo: "",
-//     mPartSupplier: "",
-//     mPRTSSource: "",
-//     mProjectCode: "",
-//     mIssueVINNo: "",
-//     mMFGShop: "",
-//     mIssueDescription: "",
-//     mCategory: "",
-//     mSeverity: "",
-//     mQtyAffected: "",
-//     mVariantAffected: "",
-//     mEngineType: "",
-//     mIsRepeated: "",
-//     mRefNo: "",
-//     mCommodity: "",
-//     mBuildType: "",
-//     mAgency: "",
-//     mPartQualityIssue: [],
-//     mPartSupplierSource: ''
-//   });
-
-//   // Technical
-//   setActiveTechData({
-//     assignDate: "",
-//     issueAssignTo: "",
-//     agencyName: "",
-//     mNTAnalysis: "",
-//     mNTRootCauseFound: "",
-//     mNTICA_Details: "",
-//     mNTICA_VIN: "",
-//     mNTPCA_Details: "",
-//     mNTPCA_VIN: "",
-//     mNT_Remarks: "",
-//     mNT_RootCause: ""
-//   });
-
-
-//   // Reset UI
-//   setActiveTab("basic");
-//   setCurrentTab("Basic");
-//   setStage(null);
-//   setCHStatus("");
-//   setStatus("");
-// };
-
 useEffect(() => {
   if (props.Reader) {
     setButtons(defaultButtonsState);
@@ -296,608 +243,6 @@ const checkReferencePresentInList = async (refNo: string) => {
   return items.length > 0;
 };
 
-
-
-
-//   const handleBaseInfoSave = async (formState: any) => {
-//     let newItemId;
-    
-//      const cleanedForm = { ...formState };
-//       Object.keys(cleanedForm).forEach((key) => {
-//         if (cleanedForm[key] === "-1" || cleanedForm[key] === "?") {
-//           cleanedForm[key] = "";
-//         }
-//       });
-      
-//       if(!problemDescription?.trim()){
-//       alert("Problem Description or Title are mandatory fields.");
-//       return;
-//       }
-//       // Reference Request Number validation
-
-//       if (cleanedForm.mRepeatedIssue === "Yes") {
-
-//         const refNo = cleanedForm.mRefNo?.trim();
-
-//         if (!refNo) {
-//           alert("Reference Request Number is mandatory for Repeated Issue.");
-//           return;
-//         }
-
-//         const exists = await checkReferencePresentInList(refNo);
- 
-//         if (!exists) {
-//           alert(`Reference Request No '${refNo}' does not exist in the system.`);
-//           return; // ❌ STOP SAVE
-//         }
-//       }
-//     try {
-//       setLoading(true);
-//       const EmployeeId = await GetUserDepartment(props, props.userEmail);
-//       // const userDisplayName = props.userDisplayName;
-//       updateSummary(userDisplayName, "", formatDateTime(new Date()), "Request Created", "");
-//       const summary = JSON.stringify(jsonSummary);
-//       const userId = props.currentSPContext.pageContext.legacyPageContext.userId;
-//       const addResult = await sp.web.lists.getByTitle("PRTSList").items.add({ Status: "Open", Summary: summary, InitiatorId: userId, Stage: 0, InitDepartment: EmployeeId?.DepartmentCode?.Department, InitiatorEmpId: props.EmployeeId[0].EmployeeID });
-//        newItemId = addResult.data.Id;
-//       const reqNo = newItemId.toString().padStart(5, "0");
-//       const fullReqNo = `PRTS/${new Date().getFullYear()}/${reqNo}`;
-//       setRequestNumber(fullReqNo);
-//       await sp.web.lists.getByTitle("PRTSList").items.getById(newItemId).update({ ReqNo: fullReqNo });
-//       //       await appendSummaryAndPersist(newItemId!, {
-//       //   c1: props.userDisplayName,
-//       //   c2: "",
-//       //   c3: formatDateTime(new Date()),
-//       //   c4: "Request Created",
-//       //   c5: ""
-//       // }); 
-   
-//     } catch (error) {
-//       console.error("Error creating request:", error);
-//       alert("Error creating request: " + error.message);
-//     }
-//     try {
-     
-//       const userId = props.currentSPContext.pageContext.legacyPageContext.userId;
-
-//       // Prepare Non-Technical JSON
-//       const Agency = cleanedForm.mAgency;
-//       const userName = cleanedForm.mPartQualityIssue?.Name || "";
-
-//       const today = new Date();
-//       const formattedDate =
-//         today.getFullYear() +
-//         "-" +
-//         String(today.getMonth() + 1).padStart(2, "0") +
-//         "-" +
-//         String(today.getDate()).padStart(2, "0");
-
-//       const nonTechJson = [
-//         {
-//           c1: Agency,
-//           c2: userName,
-//           c3: formattedDate
-//         }
-//       ];
-//       const finalNonTechJson = JSON.stringify(nonTechJson);
-//       const NEXTaPPOVEReMPLOEEID = await IEmployeeProfileops().getEmployeeProfile((cleanedForm.mPartQualityIssue?.Email||cleanedForm.diamondUsers[0].Email), props)
-//       const updateData: any = {
-//         Title: problemDescription || cleanedForm.mTitle || "",
-//         PartName: cleanedForm.mPartName,
-//         PartNumbe: cleanedForm.mPartNo,
-//         SupplierName: cleanedForm.mPartSupplier,
-//         PRTSSource: cleanedForm.mPRTSSource,
-//         ProjectCode: cleanedForm.mProjectCode,
-//         BuildType: cleanedForm.mBuildType,
-//         VINNo: cleanedForm.mIssueVINNo,
-//         MFGShopSelection: cleanedForm.mMFGShop,
-//         IssueDescription: cleanedForm.mIssueDescription,
-//         IssueCategory: cleanedForm.mIssueCategory,
-//         Severity: cleanedForm.mSeverity,
-//         QtyAffected: cleanedForm.mQtyAffected,
-//         VariantAffected: cleanedForm.mVariantAffected,
-//         RepeatedIssue: cleanedForm.mRepeatedIssue,
-//         RefReqNo: cleanedForm.mRefNo,
-//         Commodity: cleanedForm.mCommodity,
-//         SupplierSource: cleanedForm.mPartSupplierSource,
-//         EngineType: cleanedForm.mEngineType,
-//         InitDepartment: cleanedForm.mInitDept,
-//         InitiatorId: userId,
-//         SelectedTab: "Basic",
-//         NonTechnical_IssueData: finalNonTechJson,
-
-//         NextApproverEmpID: NEXTaPPOVEReMPLOEEID[0]?.EmployeeID || null,
-//         AnalysisDetails: cleanedForm.mAnalysis,
-//         Is7DRequired: cleanedForm.mIs7D,
-//         IsRootCauseFound: cleanedForm.mRootCauseFound,
-//         PurgingAttachment:cleanedForm.selectedFiles[0]?.name || ""
-//       };
-
-//       // Same logic as before for CH_Status and ApproverList
-//       // (D1-D7 disciplines removed: these branches no longer clear D1_IssueData..D7_IssueData)
-//       if (cleanedForm.mRootCauseFound === "Yes") {
-//         updateData.CH_Status = "1/6";
-//         updateData.ApproverList = `${userName}`;
-//         updateData.NAId = cleanedForm.mPartQualityIssue?.Id || null;
-//       } else if (cleanedForm.mIs7D === "No") {
-//         updateData.CH_Status = "1/6";
-//         updateData.NonTechnical_IssueData = finalNonTechJson;
-//         updateData.ApproverList = `${userName}`;
-//         updateData.NAId = cleanedForm.mPartQualityIssue?.Id || null;
-
-//       }
-
-//       // If reqId exists -> update; else create and return createdId (so BaseInfoTab can upload pending files)
-//       if (newItemId) {
-//         await sp.web.lists.getByTitle("PRTSList").items.getById((newItemId)).update(updateData);
-//          await uploadAttachments(newItemId, cleanedForm.selectedFiles);
-//         updateSummary(
-//           props.userDisplayName,
-//           "",
-//           format(new Date(), "yyyy-MM-dd"),
-//           "Details updated",
-//           ""
-//         );
-//         alert("Details updated successfully");
-//               history.push(`/InitiatorLandingedit/${newItemId}`);
-//  // existing item updated: no createdId to return
-//       } else {
-//         // Create a new item
-//         const addResult = await sp.web.lists.getByTitle("PRTSList").items.add(updateData);
-//         const createdId = addResult.data?.Id ?? (addResult as any).id ?? null;
-//         if (createdId) {
-//           // set reqId and generate ReqNo as you did in handleCreateDraft
-//           const reqNo = String(createdId).padStart(5, "0");
-//           const fullReqNo = `PRTS/${new Date().getFullYear()}/${reqNo}`;
-//           await sp.web.lists.getByTitle("PRTSList").items.getById(createdId).update({ ReqNo: fullReqNo });
-
-
-//           setRequestNumber(fullReqNo);
-//           setRequestId(String(createdId));
-//           updateSummary(
-//             props.userDisplayName,
-//             "",
-//             format(new Date(), "yyyy-MM-dd"),
-//             "Details created",
-//             ""
-//           );
-//           alert("Details created successfully");
-//           // IMPORTANT: return createdId so child (BaseInfoTab) can upload pending files
-//           return { createdId };
-//         } else {
-//           alert("Item created but ID not returned by PnPJS — attachments cannot be uploaded automatically.");
-//           return;
-//         }
-//       }
-//     } catch (error) {
-//       console.log("SAVE ERROR:", error);
-//       alert("Error saving details: " + (error.message ? error.message : error));
-//       throw error;
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-// const handleBaseInfoSave = async (formState: any, reqId?: string | number) => {
-//     let newItemId: number | undefined = reqId ? Number(reqId) : undefined;
-    
-//     const cleanedForm = { ...formState };
-//     Object.keys(cleanedForm).forEach((key) => {
-//       if (cleanedForm[key] === "-1" || cleanedForm[key] === "?") {
-//         cleanedForm[key] = "";
-//       }
-//     });
-//     const removeEmptyFields = (obj: any) => {
-//       return Object.fromEntries(
-//         Object.entries(obj).filter(
-//           ([_, value]) =>
-//             value !== undefined &&
-//             value !== null &&
-//             value !== ""
-//         )
-//       );
-//     };
-
-//     if (!problemDescription?.trim()) {
-//       alert("Problem Description or Title are mandatory fields.");
-//       return;
-//     }
-//     // Reference Request Number validation
-
-//     if (cleanedForm.mRepeatedIssue === "Yes") {
-
-//       const refNo = cleanedForm.mRefNo?.trim();
-
-//       if (!refNo) {
-//         alert("Reference Request Number is mandatory for Repeated Issue.");
-//         return;
-//       }
-
-//       const exists = await checkReferencePresentInList(refNo);
-
-//       if (!exists) {
-//         alert(`Reference Request No '${refNo}' does not exist in the system.`);
-//         return; // ❌ STOP SAVE
-//       }
-//     }
-
-//     // Create SharePoint item ONLY if this is a brand new request (no existing draft id passed in)
-//     if (!newItemId) {
-//       try {
-//         setLoading(true);
-//         const EmployeeId = await GetUserDepartment(props, props.userEmail);
-//         // const userDisplayName = props.userDisplayName;
-//         const newEntry = {
-//           c1: props.userDisplayName,
-//           c2: "",
-//           c3: formatDateTime(new Date()),
-//           c4: "Request Submitted",
-//           c5: "Technical Issue"
-//         }
-//         const updatedSummary = [newEntry];
-//         setJsonSummary(updatedSummary);
-//         const summary = JSON.stringify(updatedSummary);
-//         const userId = props.currentSPContext.pageContext.legacyPageContext.userId;
-//         const addResult = await sp.web.lists.getByTitle("PRTSList").items.add({ Status: "Open", Summary: summary, InitiatorId: userId, Stage: 0, InitDepartment: EmployeeId?.DepartmentCode?.Department, InitiatorEmpId: props.EmployeeId[0].EmployeeID });
-//         newItemId = addResult.data.Id;
-//         const reqNo = newItemId.toString().padStart(5, "0");
-//         const fullReqNo = `PRTS/${new Date().getFullYear()}/${reqNo}`;
-//         setRequestNumber(fullReqNo);
-//         await sp.web.lists.getByTitle("PRTSList").items.getById(newItemId).update({ ReqNo: fullReqNo });
-
-//       } catch (error) {
-//         console.error("Error creating request:", error);
-//         alert("Error creating request: " + error.message);
-//         setLoading(false);
-//         return; // stop execution — do not continue with an undefined newItemId
-//       }
-//     } else {
-//       // Existing draft - skip creation, just show loading state
-//       setLoading(true);
-//     }
-
-//     // Single source of truth for the item id from here on — no duplicate create/update branching
-//     const itemId = newItemId!;
-
-//     try {
-
-//       const userId = props.currentSPContext.pageContext.legacyPageContext.userId;
-
-//       // Prepare Non-Technical JSON
-//       const Agency = cleanedForm.mAgency;
-//       const initiatorName = cleanedForm.mPartQualityIssue?.Name || "";
-
-//       const today = new Date();
-//       const formattedDate =
-//         today.getFullYear() +
-//         "-" +
-//         String(today.getMonth() + 1).padStart(2, "0") +
-//         "-" +
-//         String(today.getDate()).padStart(2, "0");
-
-//       const nonTechJson = [
-//         {
-//           c1: Agency,
-//           c2: initiatorName,
-//           c3: formattedDate
-//         }
-//       ];
-//       const finalNonTechJson = JSON.stringify(nonTechJson);
-//       const NEXTaPPOVEReMPLOEEID = await IEmployeeProfileops().getEmployeeProfile((cleanedForm.mPartQualityIssue?.Email || null), props)
-//       const updateData: any = {
-//         Title: problemDescription || cleanedForm.mTitle || "",
-//         PartName: cleanedForm.mPartName,
-//         PartNumbe: cleanedForm.mPartNo,
-//         SupplierName: cleanedForm.mPartSupplier,
-//         PRTSSource: cleanedForm.mPRTSSource,
-//         ProjectCode: cleanedForm.mProjectCode,
-//         BuildType: cleanedForm.mBuildType,
-//         VINNo: cleanedForm.mIssueVINNo,
-//         MFGShopSelection: cleanedForm.mMFGShop,
-//         IssueDescription: cleanedForm.mIssueDescription,
-//         IssueCategory: cleanedForm.mIssueCategory,
-//         Severity: cleanedForm.mSeverity,
-//         QtyAffected: cleanedForm.mQtyAffected,
-//         VariantAffected: cleanedForm.mVariantAffected,
-//         RepeatedIssue: cleanedForm.mRepeatedIssue,
-//         RefReqNo: cleanedForm.mRefNo,
-//         Commodity: cleanedForm.mCommodity,
-//         SupplierSource: cleanedForm.mPartSupplierSource,
-//         EngineType: cleanedForm.mEngineType,
-//         InitDepartment: cleanedForm.mInitDept,
-//         InitiatorId: userId,
-//         SelectedTab: "Basic",
-//         NonTechnical_IssueData: finalNonTechJson,
-
-//         NextApproverEmpID: NEXTaPPOVEReMPLOEEID[0]?.EmployeeID || null,
-//         AnalysisDetails: cleanedForm.mAnalysis,
-//         // Is7DRequired: cleanedForm.mIs7D,
-//         IsRootCauseFound: cleanedForm.mRootCauseFound,
-//         PurgingAttachment:cleanedForm.selectedFiles[0]?.name || ""
-//       };
-
-//       // Same logic as before for CH_Status and ApproverList
-//       // (D1-D7 disciplines removed: these branches no longer clear D1_IssueData..D7_IssueData)
-//       if (cleanedForm.mRootCauseFound === "Yes") {
-//         updateData.CH_Status = "1/6";
-//         updateData.ApproverList = `${initiatorName}`;
-//         updateData.NAId = cleanedForm.mPartQualityIssue?.Id || null;
-//       } else if (cleanedForm.mIs7D === "No") {
-//         updateData.CH_Status = "1/6";
-//         updateData.NonTechnical_IssueData = finalNonTechJson;
-//         updateData.ApproverList = `${initiatorName}`;
-//         updateData.NAId = cleanedForm.mPartQualityIssue?.Id || null;
-
-//       }
-
-//       // Save Base Information fields — single update call, used for BOTH new and existing requests
-//       await sp.web.lists.getByTitle("PRTSList").items.getById(itemId).update(updateData);
-
-//       // Single upload block - runs for BOTH new and existing requests
-//       await uploadAttachments(itemId, cleanedForm.selectedFiles);
-
-//       // ===== Submit logic (merged from handleonSubmitRequest) =====
-
-//       const submitData: any = {};
-
-//       // Status, Stage and SelectedTab must always be updated on Submit,
-//       // regardless of whether an approver/agency was assigned
-//       submitData.Status = "In process - Tech";
-//       submitData.Stage = 2;
-//       submitData.SelectedTab = "NT";
-//       const item = await sp.web.lists
-//         .getByTitle("PRTSList")
-//         .items.getById(newItemId)
-//         .select("Summary")();
-      
-//       const existingSummary = item.Summary
-//         ? JSON.parse(item.Summary)
-//         : [];
-//       const newEntry = {
-//         c1: props.userDisplayName,
-//         c2: initiatorName ? initiatorName : initiatorName,
-//         c3: formatDateTime(new Date()),
-//         c4: "Request Submitted",
-//         c5: "Technical Issue"
-//       };
-//       existingSummary.push(newEntry);
-//       setJsonSummary(existingSummary);
-//       submitData.Summary = JSON.stringify(existingSummary);
-
-//       // Only approver assignment + delegation logic stays conditional
-//       if (activeTechData && activeTechData.issueAssignTo) {
-//         const t = [
-//           {
-//             c1: activeTechData.agencyName,
-//             c2: activeTechData.issueAssignTo,
-//             c3: formatDate(new Date()),
-//             c4: activeTechData.mNTAnalysis,
-//             c5: activeTechData.mNTRootCauseFound,
-//             c6: activeTechData.mNTICA_Details,
-//             c7: activeTechData.mNTICA_VIN,
-//             c8: activeTechData.mNTPCA_Details,
-//             c9: activeTechData.mNTPCA_VIN,
-//             c10: activeTechData.mNT_Remarks,
-//             c13: activeTechData.mNT_RootCause
-//           }
-//         ];
-//         const assignTo = activeTechData.issueAssignTo;
-//         submitData.NAId = await getUserId(assignTo);
-//         const delegated = await checkDelegation(assignTo);
-//         submitData.DAId = delegated ? await getUserId(delegated) : null;
-//         submitData.NonTechnical_IssueData = JSON.stringify(t);
-//       }
-      
-//       // Always update summary, LastAction, EmailSendFlag
-//       submitData.LastAction = new Date();
-//       submitData.EmailSendFlag = 1;
-//       //submitData.ReqNo = requestNumber;
-
-//       // Single submit update - the only SharePoint update for submit-related fields
-//       await sp.web.lists.getByTitle("PRTSList").items.getById(itemId).update(submitData);
-//       alert("Request submitted successfully");
-//       history.push("/");
-
-//     } catch (error) {
-//       console.log("SAVE ERROR:", error);
-//       alert("Error submitting details: " + (error.message ? error.message : error));
-//       throw error;
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-// const handleBaseInfoSaveDraft = async (formState: any) => {
-//   try {
-//   setLoading(true);
-
-//   const cleanedForm = { ...formState };
-
-//   Object.keys(cleanedForm).forEach((key) => {
-//     if (cleanedForm[key] === "-1" || cleanedForm[key] === "?") {
-//       cleanedForm[key] = "";
-//     }
-//   });
-
-//   // Validation
-//   if (!problemDescription?.trim()) {
-//     alert("Problem Description or Title is mandatory.");
-//     return;
-//   }
-
-//   if (cleanedForm.mRepeatedIssue === "Yes") {
-//     const refNo = cleanedForm.mRefNo?.trim();
-
-//     if (!refNo) {
-//       alert("Reference Request Number is mandatory for Repeated Issue.");
-//       return;
-//     }
-
-//     const exists = await checkReferencePresentInList(refNo);
-
-//     if (!exists) {
-//       alert(`Reference Request No '${refNo}' does not exist in the system.`);
-//       return;
-//     }
-//   }
-
-//   const userId = props.currentSPContext.pageContext.legacyPageContext.userId;
-//   // Prepare Non-Technical JSON
-//   const Agency = cleanedForm.mAgency;
-//   const initiatorName = cleanedForm.mPartQualityIssue?.Name || "";
-
-//   const today = new Date();
-//   const formattedDate =
-//     today.getFullYear() +
-//     "-" +
-//     String(today.getMonth() + 1).padStart(2, "0") +
-//     "-" +
-//     String(today.getDate()).padStart(2, "0");
-
-//   const nonTechJson = [
-//     {
-//       c1: Agency,
-//       c2: initiatorName,
-//       c3: formattedDate
-//     }
-//   ];
-//   const finalNonTechJson = JSON.stringify(nonTechJson);
-
-//   let itemId = reqId ? Number(reqId) : null;
-//   let isNewDraft = false;
-
-//   // ==========================
-//   // CREATE NEW DRAFT
-//   // ==========================
-//   if (!itemId) {
-//     isNewDraft = true;
-
-//     const employee = await GetUserDepartment(
-//       props,
-//       props.userEmail
-//     );
-
-//     const addResult = await sp.web.lists
-//       .getByTitle("PRTSList")
-//       .items.add({
-//         Status: "Draft",
-//         Stage: 0,
-//         SelectedTab: "Basic",
-//         InitiatorId: userId,
-//         InitDepartment: employee?.DepartmentCode?.Department,
-//         InitiatorEmpId: props.EmployeeId?.[0]?.EmployeeID || ""
-//       });
-
-//     itemId = addResult.data.Id;
-
-//     const reqNo = String(itemId).padStart(5, "0");
-//     const fullReqNo = `PRTS/${new Date().getFullYear()}/${reqNo}`;
-
-//     await sp.web.lists
-//       .getByTitle("PRTSList")
-//       .items.getById(itemId)
-//       .update({
-//         ReqNo: fullReqNo
-//       });
-
-//     setRequestNumber(fullReqNo);
-//     setRequestId(String(itemId));
-//   }
-
-//   // ==========================
-//   // SUMMARY
-//   // ==========================
-//   // If your updateSummary updates jsonSummary state asynchronously,
-//   // consider replacing this with appendSummaryAndPersist().
-//   const newEntry = {
-//     c1: props.userDisplayName,
-//     c2: "",
-//     c3: formatDateTime(new Date()),
-//     c4: isNewDraft ? "Draft Created" : "Draft Created",
-//     c5: ""
-//   }
-//   const updatedSummary = [newEntry];
-//   setJsonSummary(updatedSummary);
-//   const summary = JSON.stringify(updatedSummary);
-
-//   // ==========================
-//   // UPDATE DRAFT DATA
-//   // ==========================
-//   const updateData: any = {
-//     Title: problemDescription || cleanedForm.mTitle || "",
-//     PartName: cleanedForm.mPartName,
-//     PartNumbe: cleanedForm.mPartNo,
-//     SupplierName: cleanedForm.mPartSupplier,
-//     PRTSSource: cleanedForm.mPRTSSource,
-//     ProjectCode: cleanedForm.mProjectCode,
-//     BuildType: cleanedForm.mBuildType,
-//     VINNo: cleanedForm.mIssueVINNo,
-//     MFGShopSelection: cleanedForm.mMFGShop,
-//     IssueDescription: cleanedForm.mIssueDescription,
-//     IssueCategory: cleanedForm.mIssueCategory,
-//     Severity: cleanedForm.mSeverity, 
-//     QtyAffected: cleanedForm.mQtyAffected,
-//     VariantAffected: cleanedForm.mVariantAffected,
-//     RepeatedIssue: cleanedForm.mRepeatedIssue,
-//     RefReqNo: cleanedForm.mRefNo,
-//     Commodity: cleanedForm.mCommodity,
-//     SupplierSource: cleanedForm.mPartSupplierSource,
-//     EngineType: cleanedForm.mEngineType,
-//     InitDepartment: cleanedForm.mInitDept,
-//     InitiatorId: userId,
-
-//     AnalysisDetails: cleanedForm.mAnalysis,
-//     Is7DRequired: cleanedForm.mIs7D,
-//     IsRootCauseFound: cleanedForm.mRootCauseFound,
-
-//     PurgingAttachment: cleanedForm.selectedFiles?.[0]?.name || "",
-
-//     SelectedTab: "Basic",
-//     NonTechnical_IssueData: finalNonTechJson,
-
-//     // Draft fields
-//     Status: "Draft",
-//     Stage: 0,
-//     EmailSendFlag: 0,
-//     LastAction: new Date(),
-
-//     Summary: summary
-//   };
-
-//   await sp.web.lists
-//     .getByTitle("PRTSList")
-//     .items.getById(itemId)
-//     .update(updateData);
-
-//   // ==========================
-//   // ATTACHMENTS
-//   // ==========================
-//   if (cleanedForm.selectedFiles && cleanedForm.selectedFiles.length > 0) {
-//     await uploadAttachments(
-//       itemId,
-//       cleanedForm.selectedFiles
-//     );
-//   }
-
-//   alert(
-//     isNewDraft
-//       ? "Draft created successfully"
-//       : "Draft updated successfully"
-//   );
-
-//   // Redirect only on first save
-//   // if (isNewDraft) {
-//   //   history.push(`/InitiatorLandingedit/${itemId}`);
-//   // }
-//   history.push('/');
-
-//   } catch (error: any) {
-//     console.error("Draft Save Error:", error);
-//     alert("Error saving draft: " + (error?.message || error));
-//   } finally {
-//     setLoading(false);
-//   }
-// };
 
 const handleBaseInfoSave = async (formState: any, reqId?: string | number) => {
   let newItemId: number | undefined = reqId ? Number(reqId) : undefined;
@@ -1402,30 +747,26 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
       /*** 2/6* Agency User submits for review* Wrong Issue Assigned*/
       case "2/6":
         if (isApprover) {
-          show("btnsubmitforreview");
+          show("btnsubmitforreview, btnWrongIssueAssign");
         }
 
         // Initiator can reassign issue
         if (isInitiator) {
-          show(
-            "btnsubmitforreview,btnWrongIssueAssign,btnAssignIssueToAnoterUser"
-          );
+          show("btnsubmitforreview,btnAssignIssueToAnoterUser");
         }
         break;
 
       /*** 3/6* Commodity Lead*/
       case "3/6":
         if (isApprover) {
-          show(
-            "btnsubmitforreview,btnWrongIssueAssign,btnclickRework"
-          );
+          show("btnsubmitforreview,btnWrongIssueAssign,btnclickRework");
         }
         break;
 
       /*** 4/6* Initiator review*/
       case "4/6":
         if (isInitiator) {
-          show("btnsubmitforreview,btnAssignIssueToAnoterUser,btnWithDrawn,btnPrint");
+          show("btnsubmitforreview,btnAssignIssueToAnoterUser,btnWithDrawn");
         }
         break;
 
@@ -1570,9 +911,226 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
   const handleonWithdrawn = () => {
     openRemarksModal(4);
   };
-  const handleonPrint = () => { 
-    /* TODO: implement printing */
-    window.print();
+  const generatePDF = async () => {
+    const pdfWindow = window.open("", "_blank");
+
+    if (pdfWindow) {
+      pdfWindow.document.write(`
+        <html>
+        <head><title>Generating PDF...</title></head>
+        <body style="font-family:Arial;text-align:center;padding-top:100px;">
+          <h3>Generating PDF...</h3>
+          <p>Please wait while the PDF is being generated...</p>
+        </body>
+        </html>
+      `);
+      pdfWindow.document.close();
+    }
+
+    if (!pdfRef.current) {
+      pdfWindow?.close();
+      return;
+    }
+
+    const element = pdfRef.current;
+
+    const originalWidth = element.style.width;
+    const originalMaxWidth = element.style.maxWidth;
+
+    element.style.width = "1200px";
+    element.style.maxWidth = "none";
+
+    const options = {
+      margin: [10, 10, 10, 10] as [number, number, number, number],
+      filename: requestNumber
+        ? `PRTS_${requestNumber.replace(/\//g, "_")}.pdf`
+        : "PRTS_Request.pdf",
+
+      image: {
+        type: "jpeg" as const,
+        quality: 0.98
+      },
+
+      html2canvas: {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: 1200,
+        width: 1200,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+
+        onclone: (clonedDoc: Document) => {
+
+          // ===========================
+          // Workflow (.displayWF / .main-menu) — same clip-path chevron
+          // problem as the reference project, so same SVG-swap fix,
+          // using YOUR colors from NewPage.scss:
+          //   beforeactiveApprover -> #30a528
+          //   overrideStage        -> #ce0b0e
+          //   activeApprover       -> #f28c38
+          // ===========================
+          const workflowContainers = clonedDoc.querySelectorAll(".displayWF");
+
+          workflowContainers.forEach((container) => {
+            const displayWF = container as HTMLElement;
+            displayWF.style.display = "flex";
+            displayWF.style.flexDirection = "row";
+            displayWF.style.flexWrap = "nowrap";
+            displayWF.style.alignItems = "center";
+            displayWF.style.justifyContent = "flex-start";
+            displayWF.style.gap = "6px";
+            displayWF.style.padding = "0 4px";
+            displayWF.style.backgroundColor = "#333";
+            displayWF.style.width = "100%";
+            displayWF.style.boxSizing = "border-box";
+            displayWF.style.overflow = "hidden";
+
+            const menus = displayWF.querySelectorAll(".main-menu");
+
+            menus.forEach((menu) => {
+              const htmlMenu = menu as HTMLElement;
+              htmlMenu.style.display = "flex";
+              htmlMenu.style.flexWrap = "wrap";
+              htmlMenu.style.margin = "0";
+              htmlMenu.style.padding = "0";
+              htmlMenu.style.listStyle = "none";
+              htmlMenu.style.alignItems = "center";
+
+              const items = htmlMenu.querySelectorAll("li");
+              const totalItems = items.length || 1;
+              const containerWidth = displayWF.clientWidth || 1200;
+              const gap = 6;
+              const itemWidth = Math.max(
+                (containerWidth - (totalItems - 1) * gap) / totalItems,
+                180
+              );
+
+              items.forEach((item) => {
+                const li = item as HTMLElement;
+                const text = li.textContent?.trim() || "";
+
+                let bgColor = "#2d2d2d"; // default .main-menu li background
+                if (li.classList.contains("beforeactiveApprover")) {
+                  bgColor = "#30a528";
+                } else if (li.classList.contains("overrideStage")) {
+                  bgColor = "#ce0b0e";
+                } else if (li.classList.contains("activeApprover")) {
+                  bgColor = "#f28c38";
+                }
+
+                const width = itemWidth;
+                const height = 50;
+
+                li.innerHTML = `
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                    width="${width}" height="${height}"
+                    viewBox="0 0 ${width} ${height}">
+                    <polygon points="
+                      0,0
+                      ${width - 20},0
+                      ${width},25
+                      ${width - 20},50
+                      0,50
+                      20,25"
+                      fill="${bgColor}" />
+                    <text x="${width / 2}" y="25"
+                      fill="white"
+                      font-size="13"
+                      font-family="Arial"
+                      font-weight="bold"
+                      text-anchor="middle"
+                      dominant-baseline="middle">
+                      ${text}
+                    </text>
+                  </svg>
+                `;
+
+                li.style.width = `${width}px`;
+                li.style.height = "50px";
+                li.style.display = "flex";
+                li.style.alignItems = "center";
+                li.style.justifyContent = "center";
+                li.style.whiteSpace = "nowrap";
+                li.style.overflow = "hidden";
+                li.style.padding = "0";
+                li.style.margin = "8px 0px";
+                li.style.background = "transparent";
+                li.style.clipPath = "none";
+              });
+            });
+          });
+
+          // ===========================
+          // Hide loading overlay if it ever gets caught in the clone
+          // ===========================
+          clonedDoc.querySelectorAll(".loading-overlay").forEach((el) => {
+            (el as HTMLElement).style.display = "none";
+          });
+
+          // ===========================
+          // Table width / page-break safety for #tablemain,
+          // #summaryDataTable, .table-custom — generic fix, no
+          // structural change to your existing table CSS
+          // ===========================
+          clonedDoc
+            .querySelectorAll("#tablemain, #summaryDataTable, .table-custom")
+            .forEach((table) => {
+              const t = table as HTMLTableElement;
+              t.style.width = "100%";
+              t.style.maxWidth = "1200px";
+              t.style.tableLayout = "fixed";
+              t.style.borderCollapse = "collapse";
+              t.style.pageBreakInside = "auto";
+
+              t.querySelectorAll("th, td").forEach((cell) => {
+                const c = cell as HTMLElement;
+                c.style.whiteSpace = "normal";
+                c.style.wordBreak = "break-word";
+                c.style.overflowWrap = "break-word";
+              });
+            });
+
+          // Keep workflow row groups from splitting across pages
+          clonedDoc.querySelectorAll(".displayWF").forEach((el) => {
+            const w = el as HTMLElement;
+            w.style.pageBreakInside = "avoid";
+            (w.style as any).breakInside = "avoid";
+          });
+        }
+      },
+
+      jsPDF: {
+        unit: "mm" as const,
+        format: "a4" as const,
+        orientation: "landscape" as const // your form is 1200px wide — landscape avoids squeezing
+      },
+
+      pagebreak: {
+        mode: ["css", "legacy"] as any,
+        avoid: [".displayWF", "#tablemain tr", "#summaryDataTable tr"]
+      }
+    };
+
+    await html2pdf()
+      .set(options)
+      .from(element)
+      .toPdf()
+      .get("pdf")
+      .then((pdf) => {
+        element.style.width = originalWidth;
+        element.style.maxWidth = originalMaxWidth;
+
+        const blobUrl = pdf.output("bloburl");
+
+        if (pdfWindow) {
+          pdfWindow.location.href = blobUrl.toString();
+        } else {
+          window.open(blobUrl.toString(), "_blank");
+        }
+      });
   };
   const handleonCloseIssue = () => {
     openRemarksModal(6);
@@ -2055,6 +1613,21 @@ const appendSummaryAndPersist = async (
         .expand("Initiator", "NA", "DA")
         .get();
 
+      const attachments = await sp.web.lists
+        .getByTitle("PRTSList")
+        .items
+        .getById(Number(reqIdParam))
+        .attachmentFiles
+        .select("FileName", "ServerRelativeUrl")
+        .get();
+
+      setRequestAttachments(
+        attachments.map((file: any) => ({
+          FileName: file.FileName,
+          ServerRelativeUrl: file.ServerRelativeUrl
+        }))
+      );
+
       const StageVal = item.Stage;
       const CurrUserVal = props.userDisplayName;
       const NextApproverVal = item?.NA?.Title || "";
@@ -2413,7 +1986,7 @@ const getCommodityApprovers = async (commodity: string) => {
   const spCrudOps = await SPCRUDOPS();
   const data = await spCrudOps.getRootData(
     "CommodityList",
-    "*,CommodityLead/Id,CommodityLead/EMail,CommodityHead/Title,CommodityHead/Id,CommodityHead/EMail",
+    "*,CommodityLead/Id,CommodityLead/Title,CommodityLead/EMail,CommodityHead/Title,CommodityHead/Id,CommodityHead/EMail",
     "CommodityLead,CommodityHead",
     `Title eq '${commodity}'`,
     { column: "ID", isAscending: true },
@@ -2722,43 +2295,123 @@ async function WrongIssueAssign() {
 async function handleonClickRework() {
   try {
     setLoading(true);
+
     if (!reqId) {
       alert("Request ID missing");
       return;
     }
 
-    const updateObj: any = {
-      Stage: 2,
-      Status: "In process - Tech",
-      SelectedTab: currentTab.toUpperCase(),
-      CH_Status: "2/6"
-    };
+    const approvers = await getCommodityApprovers(commodityselected);
+
+    if (!approvers) {
+      alert("Commodity approvers not configured");
+      return;
+    }
+
+    const updateObj: any = {};
+    let nextApproverName = "";
+    let summaryMessage = "";
+
+    // =====================================================
+    // REWORK 1:
+    // COMMODITY HEAD -> COMMODITY LEAD
+    // Current status = 3/6
+    // Remains at 3/6
+    // =====================================================
+    if (
+      CHstatusselected === "3/6" &&
+      approvers.head.Title === NextApprover
+    ) {
+      updateObj.Stage = 3;
+      updateObj.CH_Status = "3/6";
+
+      updateObj.NAId = approvers.lead.id;
+      updateObj.NextApproverEmpID =
+        await GetApproverEmployeeId(approvers.lead.email);
+
+      updateObj.Status = "Pending with Commodity Lead";
+
+      nextApproverName = approvers.lead.Title || "";
+      summaryMessage = "Rework - Sent back to Commodity Lead";
+    }
+
+    // =====================================================
+    // REWORK 2:
+    // COMMODITY LEAD -> AGENCY
+    // Current status = 3/6
+    // Goes back to 2/6
+    // =====================================================
+    else if (
+      CHstatusselected === "3/6" &&
+      approvers.lead.Title === NextApprover
+    ) {
+      updateObj.Stage = 2;
+      updateObj.CH_Status = "2/6";
+
+      // Clear current approver because request is back
+      // with Agency / previous stage.
+      updateObj.NAId = null;
+      updateObj.NextApproverEmpID = null;
+
+      updateObj.Status = "In process - Tech";
+
+      nextApproverName = InitName || "";
+      summaryMessage = "Rework - Sent back to Agency";
+    }
+
+    // =====================================================
+    // REWORK IS ONLY ALLOWED IN 3/6
+    // =====================================================
+    else {
+      alert("Rework is allowed only at 3/6 stage.");
+      return;
+    }
+
+    // =====================================================
+    // COMMON FIELDS
+    // =====================================================
+    updateObj.SelectedTab = currentTab.toUpperCase();
+    updateObj.LastAction = new Date();
+    updateObj.EmailSendFlag = 1;
+
+    // =====================================================
+    // SUMMARY
+    // =====================================================
     const item = await sp.web.lists
       .getByTitle("PRTSList")
-      .items.getById(Number(reqId))
+      .items
+      .getById(Number(reqId))
       .select("Summary")();
- 
-    const existingSummary = item.Summary ? JSON.parse(item.Summary) : [];
+
+    const existingSummary = item.Summary
+      ? JSON.parse(item.Summary)
+      : [];
+
     const newEntry = {
       c1: props.userDisplayName,
-      c2: InitName ? InitName : InitName,
+      c2: nextApproverName,
       c3: formatDateTime(new Date()),
-      c4: "Sent Back to Previous Stage",
+      c4: summaryMessage,
       c5: ""
     };
+
     existingSummary.push(newEntry);
+
     setJsonSummary(existingSummary);
+
     updateObj.Summary = JSON.stringify(existingSummary);
 
-    // ============================
-    // Persist
-    // ============================
+    // =====================================================
+    // PERSIST
+    // =====================================================
     await sp.web.lists
       .getByTitle("PRTSList")
-      .items.getById(Number(reqId))
+      .items
+      .getById(Number(reqId))
       .update(updateObj);
-    //await updateRequest(reqId, updateObj, "Sent Back to Previous Stage");
-    alert("Sent Back to Previous Stage successfully");
+
+    alert("Rework sent successfully");
+
     history.push("/");
 
   } catch (err: any) {
@@ -2827,7 +2480,7 @@ const buildWorkflow = () => {
             </div>
         </div>
     ) : (
-      <div className="container p-0">
+      <div className="container p-0" ref={pdfRef}>
         <Header />
         <div className="displayWF">
           <ul className="main-menu mb-0">
@@ -2841,7 +2494,7 @@ const buildWorkflow = () => {
             //onCreateDraft={handleCreateDraft(formState)}
             onSubmitRequest={() => handleonSubmitRequest(reqId)}
             onWithdrawn={handleonWithdrawn}
-            onPrint={handleonPrint}
+            onPrint={generatePDF}
             onCloseIssue={handleonCloseIssue}
             onReturnBackToPITMember={handleonReturnBackToPITMember}
             onForwardToNextPITMember={handleonForwardToNextPITMember}
