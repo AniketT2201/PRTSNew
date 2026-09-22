@@ -10,6 +10,7 @@ import { Web } from '@pnp/sp/presets/all';
 import { PeoplePicker, PrincipalType } from "@pnp/spfx-controls-react/lib/PeoplePicker";
 import { useParams } from 'react-router-dom';
 import IPRTSACLRequestsOps from '../../service/BAL/SPCRUD/PRTSACL';
+import Select from "react-select";
 
 interface DiamondUser {
   Id: number;
@@ -1056,12 +1057,48 @@ const getIssueAttachments = () => {
             <input type='number' id="mQtyAffected" disabled={isCreated} value={formData.mQtyAffected ?? ''} onChange={handleChange} />
 
             <label><span className="required">*</span>Variant Affected</label>
-            <select id="mVariantAffected" disabled={isCreated} value={formData.mVariantAffected || ''} onChange={handleChange} >
-              <option value="Select">Select</option>
-              {varientDataOptions.map(varient => (
-                <option key={varient.key} value={varient.text}>{varient.text}</option>
-              ))}
-            </select>
+            <Select
+  id="mVariantAffected"
+  isMulti
+  isDisabled={isCreated}
+  options={varientDataOptions.map((variant) => ({
+    value: variant.text,
+    label: variant.text
+  }))}
+  value={
+    formData.mVariantAffected
+      ? formData.mVariantAffected
+          .split(";")
+          .map(v => v.trim())
+          .filter(Boolean)
+          .map(value => ({
+            value,
+            label: value
+          }))
+      : []
+  }
+  onChange={(selectedOptions) => {
+    const selected = selectedOptions
+      ? selectedOptions.map(option => option.value)
+      : [];
+
+    const joined = selected.join("; ");
+
+    setFormData(prev => ({
+      ...prev,
+      mVariantAffected: joined
+    }));
+
+    onChange?.({
+      ...formData,
+      mVariantAffected: joined
+    });
+  }}
+  placeholder="Select affected variants..."
+  closeMenuOnSelect={false}
+  isSearchable
+  isClearable
+/>
 
             <label><span className="required">*</span>Repeated Issue</label>
             <select name="mRepeatedIssue" id="mRepeatedIssue" disabled={isCreated} value={formData.mRepeatedIssue || ''} onChange={handleChange} >

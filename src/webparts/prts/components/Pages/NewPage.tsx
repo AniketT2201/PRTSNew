@@ -83,6 +83,7 @@ const ProblemResolutionTrackingSystem = (props: IPrtsProps) => {
   const [status, setStatus] = useState("New Request");
   const [ChStatus, setCHStatus] = useState('');
   const [jsonSummary, setJsonSummary] = useState<Array<{ c1: string; c2: string; c3: string; c4: string; c5: string }>>([]);
+  const [Summary, setSummary] = useState<any[]>([]);
   const [isRemarksOpen, setRemarksOpen] = useState(false);
   const [remarksTitle, setRemarksTitle] = useState('');
   const [remarksFor, setRemarksFor] = useState('');
@@ -373,8 +374,6 @@ const handleBaseInfoSave = async (formState: any, reqId?: string | number) => {
     // (D1-D7 disciplines removed: these branches no longer clear D1_IssueData..D7_IssueData)
       updateData.CH_Status = "1/6";
       updateData.ApproverList = `${initiatorName}`;
-      updateData.CH_Status = "1/6";
-      updateData.ApproverList = `${initiatorName}`;
  
     // FIX #1: strip empty/undefined/null fields before merging into an
     // EXISTING item so untouched form fields don't blank out saved data.
@@ -395,7 +394,7 @@ const handleBaseInfoSave = async (formState: any, reqId?: string | number) => {
       c1: props.userDisplayName,
       c2: initiatorName ? initiatorName : initiatorName,
       c3: formatDateTime(new Date()),
-      c4: "Request Submitted",
+      c4: "Request Submitted to Agency",
       c5: "Technical Issue"
     };
     existingSummary.push(newEntry);
@@ -624,14 +623,22 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
     if (RequestId) {
       setRequestId(RequestId);
     }
-     setVisibleTabs({
-      basic: true,
-      technical: false,
-      summary: true
-    });
+    if (status === "Draft" || status === "New Request") {
+      setVisibleTabs({
+        basic: true,
+        technical: false,
+        summary: true
+      });
+    } else {
+      setVisibleTabs({
+        basic: true,
+        technical: true,
+        summary: true
+      });
+    }
     handleBaseInfoGetNewPage(RequestId);
 
-  }, [RequestId]);
+  }, [RequestId, status]);
 
   
   const updateSummary = (c1: string, c2: string, c3: string, c4: string, c5: string) => {
@@ -721,6 +728,20 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
       return;
     }
 
+    // Reader User
+    if (props.Reader) {
+      show("btnClose");
+      return;
+    }
+
+    const lastSummaryMessage =
+      Summary?.length > 0
+        ? Summary[Summary.length - 1]?.c4?.trim()
+        : "";
+
+    const isLeadReworkToAgency =
+      lastSummaryMessage === "Rework - Sent back to Agency";
+
     switch (CHstatusselected) {
       /* 1/6 Agency user when updating technical issue */
       case "1/6":
@@ -734,14 +755,6 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
             props.userDisplayName?.trim().toLowerCase()
         );
 
-        // if (isEqualToCurrentUser) {
-        //   show("btnSubmit");
-        // }
-
-        // if (isApprover) {
-        //   show("btnSubmit");
-        // }
-
         break;
 
       /*** 2/6* Agency User submits for review* Wrong Issue Assigned*/
@@ -751,22 +764,31 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
         }
 
         // Initiator can reassign issue
-        if (isInitiator) {
+        if (isInitiator && !isLeadReworkToAgency) {
           show("btnsubmitforreview,btnAssignIssueToAnoterUser");
         }
         break;
 
       /*** 3/6* Commodity Lead*/
-      case "3/6":
+      case "3/6": {
+        const parts3: string[] = [];
         if (isApprover) {
-          show("btnsubmitforreview,btnWrongIssueAssign,btnclickRework");
+          // Rework & Reject only exist at 3/6, both require a mandatory comment
+          parts3.push("btnsubmitforreview", "btnWrongIssueAssign", "btnclickRework");
         }
+        // Requestor can withdraw at 3/6 as well as 4/6
+        if (isInitiator) {
+          parts3.push("btnWithDrawn");
+        }
+        show(parts3.length ? parts3.join(",") : "AllHide");
         break;
+      }
 
       /*** 4/6* Initiator review*/
       case "4/6":
         if (isInitiator) {
-          show("btnsubmitforreview,btnAssignIssueToAnoterUser,btnWithDrawn");
+          // Re-Assign Issue is only available to the initiator at 2/6, not here
+          show("btnsubmitforreview,btnWithDrawn");
         }
         break;
 
@@ -885,7 +907,7 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
         c1: props.userDisplayName,
         c2: assignTo ? assignTo : assignTo,
         c3: formatDateTime(new Date()),
-        c4: "Request Submitted",
+        c4: "Request Submitted to Agency",
         c5: "Technical Issue"
       };
       const updatedSummary = [newEntry];
@@ -1350,6 +1372,19 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
     4: { key: 'WithDrawn', title: 'Withdrawn' },
     5: { key: 'SendBackToInitiator', title: 'Send Back to Initiator' },
     6: { key: 'CloseIssue', title: 'Close Issue' },
+    7: { key: 'Rework', title: 'Rework' },
+    8: { key: 'RejectAt3', title: 'Reject' },
+    9: { key: 'ClosureReject', title: 'Reject' },
+  };
+  // Rework & Reject are only available at 3/6 and both require a mandatory comment,
+  // so both go through the RemarksModal instead of firing directly.
+  const handleonClickReworkButton = () => { openRemarksModal(7); };
+  const handleonRejectClick = () => {
+    if (CHstatusselected === "3/6") {
+      openRemarksModal(9);
+    } else {
+      openRemarksModal(9);
+    }
   };
   const openRemarksModal = (btnId: number) => {
     const remark = remarksMap[btnId];
@@ -1377,6 +1412,15 @@ const uploadAttachments = async (itemId: number, files?: File[]) => {
         break;
       case 'CloseIssue':
         closeIssue(RequestId, remarks);
+        break;
+      case 'Rework':
+        handleonClickRework(remarks);
+        break;
+      case 'RejectAt3':
+        rejectAt3(remarks);
+        break;
+      case 'ClosureReject':
+        rejectbutton(remarks);
         break;
       default:
         break;
@@ -1503,10 +1547,12 @@ const handleAssignSubmit = async (data: { agency: string; status: string; user: 
       NAId: nextApproverId,
       NextApproverEmpID: nextApproverEmpId,
       DAId: delegatedId,
-      Stage: 2,
+      // Re-assigning always drops the request back to the new agency at 1/6
+      // (e.g. initiator re-assigns at 2/6 -> new agency starts again at 1/6)
+      Stage: 1,
       Status: "In process - Tech",
       SelectedTab: "NT",
-      CH_Status: status,
+      CH_Status: "1/6",
  
       NonTechnical_IssueData: JSON.stringify(updatedNT),
  
@@ -1582,26 +1628,26 @@ const appendSummaryAndPersist = async (
     return `${year}-${month}-${day}`;
   };
 
-  const applyStagePermissions = (StatusParam: any, StageParam: any, CurrUserParam: any, NextApproverParam: any, DeleApproverParam: any, InitNameParam: any, TabSelected: any) => {
-    const StatusTab = ["basic", "technical"];
-    const selectedIndex = StatusTab.indexOf((TabSelected || "basic").toLowerCase());
-    let visible: any = {};
-    let editable: any = {};
-    StatusTab.forEach(t => { visible[t] = true; editable[t] = false; });
-    // Hide Technical tab in Draft status
-    if (StatusParam === "Draft") {
-      visible.technical = false;
-    }
-    if (StageParam > 0 && CurrUserParam === InitNameParam && CurrUserParam === NextApproverParam) {
-      StatusTab.forEach(t => editable[t] = false);
-    } else if (CurrUserParam !== NextApproverParam && CurrUserParam !== DeleApproverParam) {
-      StatusTab.forEach(t => editable[t] = false);
-    } else {
-      StatusTab.forEach((t, i) => { editable[t] = i === selectedIndex; });
-    }
-    setVisibleTabs(visible);
-    setCanEditTabs(editable);
-  };
+  // const applyStagePermissions = (StatusParam: any, StageParam: any, CurrUserParam: any, NextApproverParam: any, DeleApproverParam: any, InitNameParam: any, TabSelected: any) => {
+  //   const StatusTab = ["basic", "technical"];
+  //   const selectedIndex = StatusTab.indexOf((TabSelected || "basic").toLowerCase());
+  //   let visible: any = {};
+  //   let editable: any = {};
+  //   StatusTab.forEach(t => { visible[t] = true; editable[t] = false; });
+  //   // Hide Technical tab in Draft status
+  //   if (StatusParam === "Draft") {
+  //     visible.technical = false;
+  //   }
+  //   if (StageParam > 0 && CurrUserParam === InitNameParam && CurrUserParam === NextApproverParam) {
+  //     StatusTab.forEach(t => editable[t] = false);
+  //   } else if (CurrUserParam !== NextApproverParam && CurrUserParam !== DeleApproverParam) {
+  //     StatusTab.forEach(t => editable[t] = false);
+  //   } else {
+  //     StatusTab.forEach((t, i) => { editable[t] = i === selectedIndex; });
+  //   }
+  //   setVisibleTabs(visible);
+  //   setCanEditTabs(editable);
+  // };
 
   const handleBaseInfoGetNewPage = async (reqIdParam: string | undefined) => {
     try {
@@ -1609,7 +1655,7 @@ const appendSummaryAndPersist = async (
       if (!reqIdParam) return;
       const item = await sp.web.lists.getByTitle("PRTSList").items
         .getById(Number(reqIdParam))
-        .select("Title", "Severity", "RefReqNo", "Commodity", "SupplierSource", "InitDepartment", "IsRootCauseFound", "Is7DRequired", "AnalysisDetails", "IssueStatus", "NonTechnical_IssueData", "Initiator/Title","Initiator/EMail", "Initiator/Id", "Stage", "NA/Id", "NA/Title", "DA/Id", "DA/Title", "SelectedTab", "ReqNo", "CH_Status", "Status")
+        .select("Title", "Severity", "RefReqNo", "Summary", "Commodity", "SupplierSource", "InitDepartment", "IsRootCauseFound", "Is7DRequired", "AnalysisDetails", "IssueStatus", "NonTechnical_IssueData", "Initiator/Title","Initiator/EMail", "Initiator/Id", "Stage", "NA/Id", "NA/Title", "DA/Id", "DA/Title", "SelectedTab", "ReqNo", "CH_Status", "Status")
         .expand("Initiator", "NA", "DA")
         .get();
 
@@ -1648,10 +1694,11 @@ const appendSummaryAndPersist = async (
       setCHStatus(item.CH_Status);
       setStatus(item.Status);
       setNonTechnicaIssueData(item.NonTechnical_IssueData);
-      applyStagePermissions(item.Status, StageVal, CurrUserVal, NextApproverVal, DeleApproverVal, InitNameVal, TabSelected);
+      //applyStagePermissions(item.Status, StageVal, CurrUserVal, NextApproverVal, DeleApproverVal, InitNameVal, TabSelected);
       setRequestNumber(item.ReqNo);
       setProblemDescription(item.Title);
       updateTabsBasedOnConditions(item.IsRootCauseFound || "Select", item.Is7DRequired || "Select", item.NonTechnical_IssueData || "");
+      setSummary(item.Summary ? JSON.parse(item.Summary) : []);
       console.log("Before setDataLoaded");
 
 setDataLoaded(true);
@@ -1674,9 +1721,12 @@ console.log("After setDataLoaded");
     { id: 'summary', label: 'SUMMARY' },
   ];
 
-  function handleTechnicalIssueSave(data: TechIssueData, updatedJson?: any[]): void {
+  function handleTechnicalIssueSave(data: TechIssueData, updatedJson?: any[], newStatus?: string): void {
     setActiveTechData(data);
     if (updatedJson) setHistoryTechData(updatedJson);
+    if (CHstatusselected === "1/6" && newStatus === "2/6") {
+      window.location.reload();
+    }
   }
 
   
@@ -1687,23 +1737,31 @@ console.log("After setDataLoaded");
     const isEqualToCurrentUser = nonTechData.some(item => 
       item.c2?.trim().toLowerCase() === props.userDisplayName?.trim().toLowerCase());
     
-    if (isEqualToCurrentUser) {
-      setVisibleTabs({
-        basic: true,
-        technical: true,
-        summary: true
-      });
-    }
+    // if (isEqualToCurrentUser) {
+    //   setVisibleTabs({
+    //     basic: true,
+    //     technical: true,
+    //     summary: true
+    //   });
+    // }
+
+    // if (status === "Draft" || status === "New Request") {
+    //   setVisibleTabs({
+    //     basic: true,
+    //     technical: false,
+    //     summary: true
+    //   });
+    // }
 
     // Rule 3: Root Cause Found Yes → Only Basic + Technical + Summary
-    if (rootCauseFound === "Yes" && !isEqualToCurrentUser) {
-      setVisibleTabs({
-        basic: true,
-        technical: false,
-        summary: true
-      });
-      return;
-    }
+    // if (rootCauseFound === "Yes" && !isEqualToCurrentUser) {
+    //   setVisibleTabs({
+    //     basic: true,
+    //     technical: false,
+    //     summary: true
+    //   });
+    //   return;
+    // }
   };
 
   // NEW: Sync form data from child to parent (this prevents reset)
@@ -2033,58 +2091,91 @@ const submitforreview = async () => {
  
     // =====================================================
     // 1️⃣ AGENCY → COMMODITY LEAD
+    // No Technical Issue validation here
     // =====================================================
     if (CHstatusselected === "2/6") {
       updateObj.Stage = 3;
       updateObj.CH_Status = "3/6";
       updateObj.NAId = approvers.lead.id;
-      updateObj.NextApproverEmpID =
-        await GetApproverEmployeeId(approvers.lead.email);
+      updateObj.NextApproverEmpID = await GetApproverEmployeeId(approvers.lead.email);
       updateObj.Status = "Pending with Commodity Lead";
+
       nextApproverName = approvers.lead.Title || "";
       summaryMessage = "Submitted for Review - Forwarded to Commodity Lead";
     }
- 
+
+
     // =====================================================
-    // 2️⃣ COMMODITY LEAD → COMMODITY HEAD (Severity = 50)
-    // =====================================================
-    else if (CHstatusselected === "3/6" && severity === "50" && approvers.head.Title != NextApprover) {
-      updateObj.Stage = 3;
-      updateObj.CH_Status = "3/6";
-      updateObj.NAId = approvers.head.id;
-      updateObj.NextApproverEmpID =
-        await GetApproverEmployeeId(approvers.head.email);
-      updateObj.Status = "Pending with Commodity Head";
-      nextApproverName = approvers.head.Title || "";
-      summaryMessage = "Submitted for Review - Forwarded to Commodity Head";
-    }
- 
-    // =====================================================
-    // 3️⃣ COMMODITY LEAD → INITIATOR (Severity ≠ 50)
+    // 2️⃣ COMMODITY LEAD → NEXT STAGE
+    // Technical Issue section is mandatory at 3/6
     // =====================================================
     else if (CHstatusselected === "3/6") {
-      updateObj.Stage = 4;
-      updateObj.CH_Status = "4/6";
-      updateObj.NAId = await getUserId(InitName);
-      updateObj.NextApproverEmpID =
-        await GetApproverEmployeeId(initnameEmail);
-      updateObj.Status = "Pending with Initiator";
-      nextApproverName = InitName || "";
-      summaryMessage = "Submitted for Review - Forwarded to Initiator";
+      // -----------------------------------------
+      // Technical Issue validation
+      // -----------------------------------------
+      const missing: string[] = [];
+
+      if (!activeTechData?.mNTAnalysis?.trim()) {missing.push("Analysis Details");}
+      if (!activeTechData?.mNTRootCauseFound?.trim()) {missing.push("Is Root Cause Found");}
+      const rootCauseFound =String(activeTechData?.mNTRootCauseFound || "").trim().toLowerCase();
+      if (rootCauseFound === "yes") {
+        if (!activeTechData?.mNTICA_Details?.trim()) {missing.push("ICA Details");}
+        if (!activeTechData?.mNTICA_VIN?.trim()) {missing.push("ICA VIN Cut Off");}
+        if (!activeTechData?.mNTPCA_Details?.trim()) {missing.push("PCA Details");}
+        if (!activeTechData?.mNTPCA_VIN?.trim()) {missing.push("PCA VIN Cut Off");}
+        if (!activeTechData?.mNT_RootCause?.trim()) {missing.push("Root Cause");}
+      }
+      // STOP submission if anything is missing
+      if (missing.length > 0) {
+        alert(
+          "Please fill the Technical Issue section before submitting for review:\n\n" +
+          "• " + missing.join("\n• ")
+        );
+        return;
+      }
+
+      // -----------------------------------------
+      // Technical Issue is valid → continue flow
+      // -----------------------------------------
+      // Severity 50 → Commodity Head
+      if (severity === "50" && approvers.head.Title !== NextApprover) {
+        updateObj.Stage = 3;
+        updateObj.CH_Status = "3/6";
+        updateObj.NAId = approvers.head.id;
+        updateObj.NextApproverEmpID = await GetApproverEmployeeId(approvers.head.email);
+        updateObj.Status = "Pending with Commodity Head";
+
+        nextApproverName = approvers.head.Title || "";
+        summaryMessage = "Submitted for Review - Forwarded to Commodity Head";
+      }
+
+      // Severity != 50 → Initiator
+      else {
+        updateObj.Stage = 4;
+        updateObj.CH_Status = "4/6";
+        updateObj.NAId = await getUserId(InitName);
+        updateObj.NextApproverEmpID = await GetApproverEmployeeId(initnameEmail);
+        updateObj.Status = "Pending with Initiator";
+
+        nextApproverName = InitName || "";
+        summaryMessage = "Submitted for Review - Forwarded to Initiator";
+      }
     }
- 
+
+
     // =====================================================
-    // 4️⃣ INITIATOR → MANAGER
+    // 3️⃣ INITIATOR → MANAGER
     // =====================================================
     else if (CHstatusselected === "4/6") {
+
       const manager = await getInitiatorManagerId();
- 
+
       updateObj.Stage = 5;
       updateObj.CH_Status = "5/6";
       updateObj.NAId = manager.Id;
-      updateObj.NextApproverEmpID =
-        await GetApproverEmployeeId(manager.EMail);
+      updateObj.NextApproverEmpID = await GetApproverEmployeeId(manager.EMail);
       updateObj.Status = "Pending with Manager";
+
       nextApproverName = manager.Title || "";
       summaryMessage = "Submitted for Review - Forwarded to Manager";
     }
@@ -2155,11 +2246,15 @@ const GetApproverEmployeeId = async (ApproverEmail) =>{
   );
   return data.length ? data[0].EmployeeId: null;
 }
-const rejectbutton = async () => {
+const rejectbutton = async (remarks?: string) => {
   try {
     setLoading(true);
     if (!reqId) {
       alert("Request ID missing");
+      return;
+    }
+    if (!remarks || !remarks.trim()) {
+      alert("A comment is mandatory to reject.");
       return;
     }
 
@@ -2214,7 +2309,7 @@ const rejectbutton = async () => {
       c2: nextApproverName ? nextApproverName : nextApproverName,
       c3: formatDateTime(new Date()),
       c4: "Closure Rejected",
-      c5: "Request sent back for rework"
+      c5: remarks
     };
     existingSummary.push(newEntry);
     setJsonSummary(existingSummary);
@@ -2292,12 +2387,16 @@ async function WrongIssueAssign() {
   }
 }
 
-async function handleonClickRework() {
+async function handleonClickRework(remarks?: string) {
   try {
     setLoading(true);
 
     if (!reqId) {
       alert("Request ID missing");
+      return;
+    }
+    if (!remarks || !remarks.trim()) {
+      alert("A comment is mandatory to send for rework.");
       return;
     }
 
@@ -2325,9 +2424,8 @@ async function handleonClickRework() {
       updateObj.Stage = 3;
       updateObj.CH_Status = "3/6";
 
-      updateObj.NAId = approvers.lead.id;
-      updateObj.NextApproverEmpID =
-        await GetApproverEmployeeId(approvers.lead.email);
+      updateObj.NAId = approvers.lead.id || null;
+      updateObj.NextApproverEmpID = await GetApproverEmployeeId(approvers.lead.email);
 
       updateObj.Status = "Pending with Commodity Lead";
 
@@ -2345,18 +2443,85 @@ async function handleonClickRework() {
       CHstatusselected === "3/6" &&
       approvers.lead.Title === NextApprover
     ) {
+      // Get the actual Agency user from the saved technical/agency history
+      const currentItem = await sp.web.lists
+        .getByTitle("PRTSList")
+        .items
+        .getById(Number(reqId))
+        .select("NonTechnical_IssueData")();
+
+      const nonTechData = currentItem.NonTechnical_IssueData
+        ? JSON.parse(currentItem.NonTechnical_IssueData)
+        : [];
+
+      // Last assigned agency user
+      const agencyUserName = nonTechData.length > 0
+        ? nonTechData[0]?.c2?.trim()
+        : "";
+
+      if (!agencyUserName) {
+        alert("Agency user not found for rework.");
+        return;
+      }
+      const ensuredUser = await sp.web.ensureUser(agencyUserName);
+      const agencyUserId = ensuredUser.data.Id;
+      const agencyUserEmail = ensuredUser.data.Email;
+
       updateObj.Stage = 2;
       updateObj.CH_Status = "2/6";
 
       // Clear current approver because request is back
       // with Agency / previous stage.
-      updateObj.NAId = null;
-      updateObj.NextApproverEmpID = null;
+      updateObj.NAId = agencyUserId || null;
+      updateObj.NextApproverEmpID = await GetApproverEmployeeId(agencyUserEmail);
 
       updateObj.Status = "In process - Tech";
 
-      nextApproverName = InitName || "";
+      nextApproverName = agencyUserName || "";
       summaryMessage = "Rework - Sent back to Agency";
+    }
+
+    // ================================================
+    // REWORK 3
+    // AGENCY USER → INITIATOR
+    // ================================================
+    else if (
+      CHstatusselected === "2/6"
+    ) {
+      // Get the actual Agency user from the saved technical/agency history
+      const currentItem = await sp.web.lists
+        .getByTitle("PRTSList")
+        .items
+        .getById(Number(reqId))
+        .select("NonTechnical_IssueData")();
+
+      const nonTechData = currentItem.NonTechnical_IssueData
+        ? JSON.parse(currentItem.NonTechnical_IssueData)
+        : [];
+
+      // Last assigned agency user
+      const agencyUserName = nonTechData.length > 0
+        ? nonTechData[0]?.c2?.trim()
+        : "";
+
+      if (!agencyUserName) {
+        alert("Agency user not found for rework.");
+        return;
+      }
+      const ensuredUser = await sp.web.ensureUser(agencyUserName);
+      const agencyUserId = ensuredUser.data.Id;
+      const agencyUserEmail = ensuredUser.data.Email;
+
+      updateObj.Stage = 1;
+      updateObj.CH_Status = "1/6";
+
+      updateObj.NAId = agencyUserId || null;
+      updateObj.NextApproverEmpID = await GetApproverEmployeeId(agencyUserEmail);
+
+      updateObj.Status = "In process - Tech";
+
+      nextApproverName = agencyUserName || "";
+      summaryMessage = "Rework - Sent back to Initiator";
     }
 
     // =====================================================
@@ -2392,7 +2557,7 @@ async function handleonClickRework() {
       c2: nextApproverName,
       c3: formatDateTime(new Date()),
       c4: summaryMessage,
-      c5: ""
+      c5: remarks
     };
 
     existingSummary.push(newEntry);
@@ -2412,6 +2577,101 @@ async function handleonClickRework() {
 
     alert("Rework sent successfully");
 
+    history.push("/");
+
+  } catch (err: any) {
+    alert("Error: " + (err?.message || err));
+  } finally {
+    setLoading(false);
+  }
+}
+
+// =====================================================
+// REJECT AT 3/6
+// Same routing as Rework (only valid at 3/6), but records
+// the action as a Rejection instead of a Rework, and always
+// requires a mandatory comment.
+// =====================================================
+async function rejectAt3(remarks?: string) {
+  try {
+    setLoading(true);
+
+    if (!reqId) {
+      alert("Request ID missing");
+      return;
+    }
+    if (!remarks || !remarks.trim()) {
+      alert("A comment is mandatory to reject.");
+      return;
+    }
+    if (CHstatusselected !== "3/6") {
+      alert("Reject is allowed only at 3/6 stage.");
+      return;
+    }
+
+    const approvers = await getCommodityApprovers(commodityselected);
+    if (!approvers) {
+      alert("Commodity approvers not configured");
+      return;
+    }
+
+    const updateObj: any = {};
+    let nextApproverName = "";
+    let summaryMessage = "";
+
+    // COMMODITY HEAD -> COMMODITY LEAD (stays at 3/6)
+    if (approvers.head.Title === NextApprover) {
+      updateObj.Stage = 3;
+      updateObj.CH_Status = "3/6";
+      updateObj.NAId = approvers.lead.id;
+      updateObj.NextApproverEmpID = await GetApproverEmployeeId(approvers.lead.email);
+      updateObj.Status = "Rejected - Pending with Commodity Lead";
+      nextApproverName = approvers.lead.Title || "";
+      summaryMessage = "Rejected - Sent back to Commodity Lead";
+    }
+    // COMMODITY LEAD -> AGENCY (goes back to 2/6)
+    else if (approvers.lead.Title === NextApprover) {
+      updateObj.Stage = 2;
+      updateObj.CH_Status = "2/6";
+      updateObj.NAId = null;
+      updateObj.NextApproverEmpID = null;
+      updateObj.Status = "Rejected - In process - Tech";
+      nextApproverName = InitName || "";
+      summaryMessage = "Rejected - Sent back to Agency";
+    } else {
+      alert("Reject is allowed only at 3/6 stage.");
+      return;
+    }
+
+    updateObj.SelectedTab = currentTab.toUpperCase();
+    updateObj.LastAction = new Date();
+    updateObj.EmailSendFlag = 1;
+
+    const item = await sp.web.lists
+      .getByTitle("PRTSList")
+      .items
+      .getById(Number(reqId))
+      .select("Summary")();
+
+    const existingSummary = item.Summary ? JSON.parse(item.Summary) : [];
+    const newEntry = {
+      c1: props.userDisplayName,
+      c2: nextApproverName,
+      c3: formatDateTime(new Date()),
+      c4: "Rejected",
+      c5: remarks
+    };
+    existingSummary.push(newEntry);
+    setJsonSummary(existingSummary);
+    updateObj.Summary = JSON.stringify(existingSummary);
+
+    await sp.web.lists
+      .getByTitle("PRTSList")
+      .items
+      .getById(Number(reqId))
+      .update(updateObj);
+
+    alert("Request rejected successfully");
     history.push("/");
 
   } catch (err: any) {
@@ -2506,9 +2766,9 @@ const buildWorkflow = () => {
             onBackToInitiator={handleonBackToInitiator}
             onReassignIssue={handleonReassignIssue}
             onSubmitForReview={submitforreview}
-            onRejectClick={rejectbutton}
+            onRejectClick={handleonRejectClick}
             onWrongIssueAssign={WrongIssueAssign}
-            onClickRework={handleonClickRework}
+            onClickRework={handleonClickReworkButton}
             status={status}
             chStatus={ChStatus}
           />

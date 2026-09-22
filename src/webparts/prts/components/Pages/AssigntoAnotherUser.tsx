@@ -6,6 +6,7 @@ import {
 } from "@pnp/spfx-controls-react/lib/PeoplePicker";
 import SPCRUDOPS from '../../service/DAL/spcrudops';
 import { WebPartContext } from '@microsoft/sp-webpart-base';
+import './CSS/ForwardingUsersList.scss';
 
 interface AssignToAnotherUserModalProps {
   isOpen: boolean;
@@ -94,8 +95,9 @@ const AssignToAnotherUserModal: React.FC<AssignToAnotherUserModalProps> = ({
         <div className="modal-content">
 
           <div className="modal-header">
-            <button type="button" className="close" onClick={onClose}>&times;</button>
             <h4 className="modal-title">Issue Assign To Another User</h4>
+            <button type="button" className="modal-close-btn" aria-label="Close" onClick={onClose}
+            >&times;</button>
           </div>
 
           <div className="modal-body">

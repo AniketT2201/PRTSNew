@@ -39,6 +39,28 @@ const Drr: React.FC<IPrtsProps> = (props) => {
     </div>
   );
 
+  const QueryParamWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    React.useEffect(() => {
+      const url = new URL(window.location.href);
+
+      // If env is not already present, add it
+      if (!url.searchParams.has("env")) {
+        url.searchParams.set("env", "WebViewList");
+
+        // Clean hash: remove any ?env=WebViewList from inside the hash routes
+        const cleanHash = url.hash.replace(/\?env=WebViewList/, "");
+
+        // Build correct final URL
+        const newUrl = `${url.origin}${url.pathname}?${url.searchParams.toString()}${cleanHash}`;
+
+        // Update without reload
+        window.history.replaceState({}, "", newUrl);
+      }
+    }, []);
+
+    return <>{children}</>;
+  };
+
 
   if (props.Maintenance === true) {
     return (
@@ -69,117 +91,113 @@ const Drr: React.FC<IPrtsProps> = (props) => {
   return (
     <div>
       <HashRouter>
-        {/* <Router> */}
-          <div className="container-fluid" style={{ display: 'flex', width: '100%' }}>
-            <Sidebar {...props} />
-            <div className="main">
-              <Switch>
-                <Route
-                  path="/InitiatorLanding"
-                  render={() => 
-                    props.Reader === true
-                      ? readerAccessDenied()
-                      : <ProblemResolutionTrackingSystem {...props} />
-                  }
-                />
-                <Route
-                  path="/InitiatorLandingedit/:RequestId"
-                  render={() => 
-                    props.Reader === true
-                      ? readerAccessDenied()
-                      : <Approval {...props} />
-                  }
-                />
-                <Route
-                  exact
-                  path="/"
-                  render={() => <InitiatorLanding {...props} />}
-                />
-                <Route
-                  exact
-                  path="/Dashboard"
-                  render={() => <Dashboard {...props} />}
-                />
-                <Route
-                  exact
-                  path="/ApprovalForm"
-                  render={() => <ApprovalForm {...props} />}
-                />
-                <Route
-                  exact
-                  path="/MyReqDash"
-                  render={() => <MyReqDash {...props} />}
-                />
-                <Route
-                  exact
-                  path="/AllReqDash"
-                  render={() => <AllReqDash {...props} />}
-                />
-                <Route
-                  exact
-                  path="/Draft"
-                  render={() => <Draft {...props} />}
-                />
-                <Route
-                  exact
-                  path="/CostCenter"
-                  render={() => <CostCenter {...props} />}
-                />
-                <Route
-                  exact
-                  path="/PartwiseReport"
-                  render={() => <PartwiseReport {...props} />}
-                />
-                <Route
-                  exact
-                  path="/ForwardingUser"
-                  render={() => <ForwardingUser {...props} />}
-                />
-                <Route
-                  exact
-                  path="/Print"
-                  render={() => <Print {...props} />}
-                />
-                <Route
-                  exact
-                  path="/Material"
-                  render={() => <MaterialUser {...props} />}
-                />
-                <Route
-                  exact
-                  path="/Warehouse"
-                  render={() => <WarehouseUser {...props} />}
-                />
-                {/* Master Pages Routes */}
-                <Route
-                  exact
-                  path="/BuildType"
-                  render={() => <BuildType {...props} />}
-                />
-                <Route
-                  exact
-                  path="/PRTSResource"
-                  render={() => <PRTSResource {...props} />}
-                />
-                <Route
-                  exact
-                  path="/Commodity"
-                  render={() => <Commodity {...props} />}
-                />
-                <Route
-                  exact
-                  path="/IssueCategory"
-                  render={() => <IssueCategory {...props} />}
-                />
-                <Route
-                  exact
-                  path="/MFGShop"
-                  render={() => <MFGShopSelection {...props} />}
-                />
-              </Switch>
+        <QueryParamWrapper>
+          {/* <Router> */}
+            <div className="container-fluid" style={{ display: 'flex', width: '100%' }}>
+              <Sidebar {...props} />
+              <div className="main">
+                <Switch>
+                  <Route
+                    path="/InitiatorLanding"
+                    render={() => <ProblemResolutionTrackingSystem {...props} />
+                    }
+                  />
+                  <Route
+                    path="/InitiatorLandingedit/:RequestId"
+                    render={() => <Approval {...props} />
+                    }
+                  />
+                  <Route
+                    exact
+                    path="/"
+                    render={() => <InitiatorLanding {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/Dashboard"
+                    render={() => <Dashboard {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/ApprovalForm"
+                    render={() => <ApprovalForm {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/MyReqDash"
+                    render={() => <MyReqDash {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/AllReqDash"
+                    render={() => <AllReqDash {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/Draft"
+                    render={() => <Draft {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/CostCenter"
+                    render={() => <CostCenter {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/PartwiseReport"
+                    render={() => <PartwiseReport {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/ForwardingUser"
+                    render={() => <ForwardingUser {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/Print"
+                    render={() => <Print {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/Material"
+                    render={() => <MaterialUser {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/Warehouse"
+                    render={() => <WarehouseUser {...props} />}
+                  />
+                  {/* Master Pages Routes */}
+                  <Route
+                    exact
+                    path="/BuildType"
+                    render={() => <BuildType {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/PRTSResource"
+                    render={() => <PRTSResource {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/Commodity"
+                    render={() => <Commodity {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/IssueCategory"
+                    render={() => <IssueCategory {...props} />}
+                  />
+                  <Route
+                    exact
+                    path="/MFGShop"
+                    render={() => <MFGShopSelection {...props} />}
+                  />
+                </Switch>
+              </div>
             </div>
-          </div>
-        {/* </Router> */}
+          {/* </Router> */}
+        </QueryParamWrapper>
       </HashRouter>
     </div>
 

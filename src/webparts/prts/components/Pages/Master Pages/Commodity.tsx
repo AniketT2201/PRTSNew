@@ -291,7 +291,7 @@ export const Commodity: React.FC<IPrtsProps> = (props: IPrtsProps) => {
               const vendorData = await MasterPagesRequestsOps().getCommodityData(
                   { column: "ID", isAscending: true },
                   props,
-                  `Title eq '${title.replace(/'/g, "''")}' and CommodityHeadId eq ${vendorForm.CommodityHeadId} and CommodityLeadId eq ${vendorForm.CommodityLeadId}`
+                  `Title eq '${title.replace(/'/g, "''")}'`
               );
 
               // 🔹 Ignore same record when editing
